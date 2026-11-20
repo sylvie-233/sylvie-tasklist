@@ -14,6 +14,7 @@
 | 状态 | **zustand**（含 `subscribeWithSelector`，非 React 侧订阅落盘） |
 | 设计系统 | `packages/ui`：Radix UI（Dialog / Switch）+ 自有设计令牌 |
 | 交互 | **@dnd-kit**（任务与分组拖拽）、**motion**（列表布局动画）、**sonner**（Toast） |
+| 工具库 | `@sylvie/utils`：className 合并、颜色转换、日期格式化、拖拽点击守卫（零业务依赖） |
 | 日期 | date-fns |
 | 服务端 | **Hono** + **@modelcontextprotocol/sdk**（MCP，官方 SDK 的 Streamable HTTP，独立在 `packages/mcp`） |
 
@@ -49,11 +50,15 @@ tasklist-monorepo/
 │               ├── dragGuard.ts       # 拖拽结束后的点击抑制
 │               └── components/        # TitleBar / MenuBar / Sidebar / Toolbar / TaskList / TaskDialog / SettingsPanel / StatusBar
 └── packages/
-    ├── core/                      # 领域模型：类型 / 默认值 / 排序 / 迁移 / 设置 schema / 格式化
+    ├── core/                      # 领域模型：类型 / 默认值 / 排序 / 迁移 / 设置 schema
     ├── mcp/                       # MCP 服务：工具定义 + Hono HTTP 传输 + TaskListRepository 端口
     ├── ui/                        # 设计系统：令牌、Button/Chip/Field/Modal/Switch/Toaster 等
+    ├── utils/                     # 通用工具：cn / 颜色 / 日期 / 交互守卫（无业务语义）
     └── tsconfig/                  # 共享 TypeScript 配置
 ```
+
+- `packages/utils` 只放与业务无关的纯函数：日期格式化（date-fns）、颜色转换、`cn`、拖拽后的点击抑制；
+  UI、MCP、主进程与领域层共用同一份实现，避免各处复制小工具。
 
 - `packages/mcp` 不依赖 Electron：只声明 `TaskListRepository` 端口（读数据 / 建任务 / 改分组…），
   由宿主（主进程）实现并通过 `startMcpHttpServer({ repo, version, port })` 注入，便于以后在其他运行时复用。
