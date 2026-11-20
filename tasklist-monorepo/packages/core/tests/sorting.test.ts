@@ -9,9 +9,9 @@ import {
   sortTasks,
   taskStats,
   viewTasks,
-} from './sorting';
-import { ALL_GROUP, UNGROUPED } from './types';
-import type { Task, TaskData, ViewState } from './types';
+} from '../src/sorting';
+import { ALL_GROUP, UNGROUPED } from '../src/types';
+import type { Task, TaskData, ViewState } from '../src/types';
 
 function makeTask(overrides: Partial<Task> & Pick<Task, 'id'>): Task {
   return {

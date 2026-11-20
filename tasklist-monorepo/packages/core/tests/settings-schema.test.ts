@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { SETTINGS_CATEGORIES, SETTINGS_ITEMS, resolveSettingOptions } from './settings-schema';
+import { SETTINGS_CATEGORIES, SETTINGS_ITEMS, resolveSettingOptions } from '../src/settings-schema';
 
 describe('设置项定义', () => {
   it('分类顺序与导航一致', () => {

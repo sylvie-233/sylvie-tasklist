@@ -91,6 +91,9 @@ tasklist-monorepo/
 `core` 与 `ui` 以 TS 源码形式被消费（`exports` 指向 `src/index.ts`，Vite alias 直连），
 省掉构建产物与 watch 流程，因此不单独发布 npm。
 
+`core` / `utils` / `mcp` 的单元测试放在各包与 `src` 平级的 `tests/` 目录（不混入源码），
+由根目录 `pnpm test` 或 `pwsh ./manage.ps1 test` 统一运行。
+
 ## 数据与配置
 
 两份 JSON 文件，位于 `%APPDATA%/Sylvie TaskList/`：

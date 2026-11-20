@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hexToRgba, isHexColor, normalizeHexColor } from './color';
+import { hexToRgba, isHexColor, normalizeHexColor } from '../src/color';
 
 describe('颜色校验', () => {
   it('仅接受 #RRGGBB', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cn } from './cn';
+import { cn } from '../src/cn';
 
 describe('cn', () => {
   it('合并字符串、对象与数组，忽略假值', () => {

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeDue, formatDate, formatDateTime, formatDueFull, normalizeDueInput } from './date';
+import {
+  describeDue,
+  formatDate,
+  formatDateTime,
+  formatDueFull,
+  normalizeDueInput,
+} from '../src/date';
 
 const NOW = new Date(2026, 10, 20, 10, 0, 0).getTime();
 

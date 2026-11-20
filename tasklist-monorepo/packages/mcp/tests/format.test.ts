@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupSummary, parseColor, taskSummary } from './format';
+import { groupSummary, parseColor, taskSummary } from '../src/format';
 import type { Task, TaskData } from '@sylvie/core';
 
 const baseTask: Task = {

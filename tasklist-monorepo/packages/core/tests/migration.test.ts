@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_GROUPS, DEFAULT_SETTINGS } from './defaults';
-import { migrateSettings, migrateTaskData, serializeSettings } from './migration';
-import { UNGROUPED } from './types';
+import { DEFAULT_GROUPS, DEFAULT_SETTINGS } from '../src/defaults';
+import { migrateSettings, migrateTaskData, serializeSettings } from '../src/migration';
+import { UNGROUPED } from '../src/types';
 
 describe('migrateTaskData', () => {
   it('迁移旧字段、清洗分组并丢弃坏任务', () => {
