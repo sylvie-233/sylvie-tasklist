@@ -41,6 +41,32 @@ export function orderBetween(
 }
 
 /**
+ * 计算把 `movedId` 放到 `targetId` 之前/之后的新顺序值。
+ * 与 `orderBetween` 的区别：这里用“目标 + 位置”表达意图，内部再找前后邻居。
+ */
+export function orderForPosition(
+  tasks: Task[],
+  movedId: number,
+  targetId: number,
+  position: 'before' | 'after',
+): number | null {
+  if (movedId === targetId) {
+    return null;
+  }
+  const others = tasks
+    .filter((task) => task.id !== movedId)
+    .sort((a, b) => effectiveOrder(a) - effectiveOrder(b));
+  const index = others.findIndex((task) => task.id === targetId);
+  if (index < 0) {
+    return null;
+  }
+  if (position === 'before') {
+    return orderBetween(others, others[index - 1]?.id, targetId);
+  }
+  return orderBetween(others, targetId, others[index + 1]?.id);
+}
+
+/**
  * 排序：自定义排序严格按 `order`；规则排序一律“已完成整体沉底”，段内再按规则排。
  */
 export function sortTasks(tasks: Task[], sort: SortMode): Task[] {
