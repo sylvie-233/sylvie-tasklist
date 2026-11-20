@@ -45,6 +45,7 @@ pnpm desktop:package   # 免安装目录 → apps/electron/dist
 pnpm desktop:make      # Windows 安装包 → apps/electron/dist/make
 pnpm typecheck         # 全仓库类型检查
 pnpm lint              # ESLint（--max-warnings 0）
+pnpm test              # 单元测试（Vitest：core / utils / mcp）
 ```
 
 界面回归截图（无需 UI 自动化）：
@@ -64,7 +65,7 @@ pwsh ./manage.ps1 mcp         # 探测 MCP Server 并输出客户端配置
 pwsh ./manage.ps1 screenshot -View settings -Category 配置文件
 ```
 
-其余操作（`install` / `dev` / `package` / `make` / `check` / `clean` / `icon` / `data` / `reset`）
+其余操作（`install` / `dev` / `package` / `make` / `check` / `test` / `clean` / `icon` / `data` / `reset`）
 见 `Get-Help ./manage.ps1 -Full`。
 
 ## 目录结构
@@ -141,7 +142,7 @@ tasklist-monorepo/
 ## 已知限制
 
 - 安装包未签名，Squirrel 安装会触发 SmartScreen 提示
-- 未接入单元测试（typecheck + ESLint + 打包 + 截图回归为当前验证手段）
+- 核心逻辑由 Vitest 覆盖（core / utils / mcp）；UI 组件与主进程暂无组件、端到端测试
 - 渲染产物约 530 KB（dnd-kit + Radix + motion），桌面场景未做代码分割
 
 ## 赞助支持
