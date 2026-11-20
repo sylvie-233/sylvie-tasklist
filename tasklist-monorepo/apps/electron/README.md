@@ -107,7 +107,7 @@ MCP 工具 → TaskListRepository（主进程实现）→ commitTasks/commitSett
 
 ```bash
 pnpm --filter @sylvie/electron start     # 开发模式（Vite HMR）
-pnpm --filter @sylvie/electron package   # 免安装目录 → dist/Sylvie Task List-win32-x64/
+pnpm --filter @sylvie/electron package   # 免安装目录 → dist/Sylvie TaskList-win32-x64/
 pnpm --filter @sylvie/electron make      # 安装包 → dist/make/（Squirrel + ZIP）
 pnpm --filter @sylvie/electron typecheck
 pnpm --filter @sylvie/electron lint

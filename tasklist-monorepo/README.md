@@ -55,6 +55,18 @@ TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_VIEW=settings pnpm desktop:dev   # �
 TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_VIEW=task pnpm desktop:dev       # 任务详情
 ```
 
+仓库根目录的 `manage.ps1` 封装了常用运维操作（在根目录执行）：
+
+```powershell
+pwsh ./manage.ps1 status      # 环境 / 运行状态 / 数据文件 / 产物 / MCP 一览
+pwsh ./manage.ps1 backup      # 备份 tasks.json 与 settings.json 到 backups/
+pwsh ./manage.ps1 mcp         # 探测 MCP Server 并输出客户端配置
+pwsh ./manage.ps1 screenshot -View settings -Category 配置文件
+```
+
+其余操作（`install` / `dev` / `package` / `make` / `check` / `clean` / `icon` / `data` / `reset`）
+见 `Get-Help ./manage.ps1 -Full`。
+
 ## 目录结构
 
 ```text
