@@ -17,6 +17,7 @@
       check       依次执行 typecheck 与 lint
       typecheck   全仓库类型检查
       lint        全仓库 ESLint（--max-warnings 0）
+      test        运行单元测试（Vitest：core / utils / mcp）
       clean       清理构建产物与缓存（.vite / dist / out / .turbo）
       icon        重新生成应用图标（assets 下的 PNG / ICO / 托盘图）
       screenshot  截图回归（可配合 -View / -Category）
@@ -70,7 +71,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'status', 'install', 'dev', 'package', 'make',
-        'check', 'typecheck', 'lint', 'clean', 'icon',
+        'check', 'typecheck', 'lint', 'test', 'clean', 'icon',
         'screenshot', 'data', 'backup', 'reset', 'mcp'
     )]
     [string]$Action = 'status',
@@ -491,6 +492,11 @@ try {
         'lint' {
             Assert-NodePrerequisites
             Invoke-Pnpm -PnpmArgs @('lint')
+        }
+
+        'test' {
+            Assert-NodePrerequisites
+            Invoke-Pnpm -PnpmArgs @('test')
         }
 
         'clean' {
