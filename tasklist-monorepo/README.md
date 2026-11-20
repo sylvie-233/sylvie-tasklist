@@ -28,9 +28,15 @@ tasklist-monorepo/
 │       ├── forge.config.ts        # 打包与 maker 配置（Squirrel.Windows / ZIP，输出 dist/）
 │       ├── assets/                # 图标（scripts/generate-icon.mjs 生成，零依赖）
 │       └── src/
-│           ├── main.ts            # 主进程：无边框窗口、托盘、IPC、文件读写
-│           ├── task-repository.ts # 把主进程缓存适配成 MCP 的 TaskListRepository
-│           ├── dev-capture.ts     # 开发用截图钩子（GUI 回归）
+│           ├── main.ts            # 主进程入口：只做生命周期与模块装配（~70 行）
+│           ├── main/              # 主进程按域拆分
+│           │   ├── context.ts     # 进程级状态 / 路径 / 信息 / 广播
+│           │   ├── storage.ts     # tasks.json / settings.json 原子读写与迁移
+│           │   ├── window.ts      # 主窗口创建、显隐、关闭行为
+│           │   ├── tray.ts        # 系统托盘与菜单
+│           │   ├── ipc/           # IPC 按域注册：storage / files / window / mcp
+│           │   ├── mcp/           # MCP 启停服务 + TaskListRepository 适配
+│           │   └── dev-capture.ts # 开发用截图钩子（GUI 回归）
 │           ├── preload.ts         # contextBridge 暴露 window.desktop
 │           ├── renderer.tsx       # 渲染进程入口
 │           ├── index.css          # 应用布局样式（设计令牌来自 @sylvie/ui）
