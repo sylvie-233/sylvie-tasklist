@@ -23,7 +23,7 @@ import { TaskDialog } from './components/TaskDialog';
 import { TaskList } from './components/TaskList';
 import { TitleBar } from './components/TitleBar';
 import { Toolbar } from './components/Toolbar';
-import { markDragEnd } from './dragGuard';
+import { markDragEnd } from '@sylvie/utils';
 import { useTaskStore } from './store/taskStore';
 import { useAppearance } from './useAppearance';
 

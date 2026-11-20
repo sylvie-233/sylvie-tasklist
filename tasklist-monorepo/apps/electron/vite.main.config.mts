@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@sylvie/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
       '@sylvie/mcp': fileURLToPath(new URL('../../packages/mcp/src/index.ts', import.meta.url)),
+      '@sylvie/utils': fileURLToPath(new URL('../../packages/utils/src/index.ts', import.meta.url)),
     },
   },
 });

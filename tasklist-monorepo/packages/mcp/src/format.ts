@@ -1,5 +1,5 @@
-import { describeDue } from '@sylvie/core';
 import type { Task, TaskData } from '@sylvie/core';
+import { describeDue, normalizeHexColor } from '@sylvie/utils';
 
 /** 工具返回的文本结果（JSON 便于模型与人工阅读）。 */
 export function textResult(payload: unknown): { content: Array<{ type: 'text'; text: string }> } {
@@ -46,8 +46,9 @@ export function parseColor(color: string | undefined | null): string | undefined
   if (color === undefined || color === null || color === '') {
     return undefined;
   }
-  if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+  const normalized = normalizeHexColor(color);
+  if (!normalized) {
     throw new Error(`颜色格式不合法：${color}（应为 #RRGGBB）`);
   }
-  return color.toLowerCase();
+  return normalized;
 }

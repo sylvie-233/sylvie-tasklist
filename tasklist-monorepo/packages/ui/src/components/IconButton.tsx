@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 
-import { cn } from '../lib/cn';
+import { cn } from '@sylvie/utils';
 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** hover 色调，默认主题色；danger 用于删除类操作。 */

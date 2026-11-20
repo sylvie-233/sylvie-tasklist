@@ -1,4 +1,5 @@
-import { describeDue, viewTasks } from '@sylvie/core';
+import { viewTasks } from '@sylvie/core';
+import { describeDue } from '@sylvie/utils';
 import type { ViewState } from '@sylvie/core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';

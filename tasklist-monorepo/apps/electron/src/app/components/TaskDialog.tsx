@@ -1,6 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 
-import { PRIORITY_TEXT, UNGROUPED, formatDateTime } from '@sylvie/core';
+import { PRIORITY_TEXT, UNGROUPED } from '@sylvie/core';
+import { formatDateTime } from '@sylvie/utils';
 import type { Priority, Task, TaskDraft } from '@sylvie/core';
 import { Button, Field, Modal, Select, TextArea, TextInput } from '@sylvie/ui';
 

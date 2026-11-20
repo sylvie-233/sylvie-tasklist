@@ -33,6 +33,7 @@
     "@sylvie/mcp": "workspace:*",
     "@sylvie/tsconfig": "workspace:*",
     "@sylvie/ui": "workspace:*",
+    "@sylvie/utils": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^22.10.5",

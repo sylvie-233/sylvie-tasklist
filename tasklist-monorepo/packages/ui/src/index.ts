@@ -1,4 +1,4 @@
-export { cn } from './lib/cn';
+export { cn } from '@sylvie/utils';
 
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './components/Button';
 export { IconButton, type IconButtonProps } from './components/IconButton';

@@ -1,10 +1,6 @@
-import {
-  UNGROUPED,
-  nextNewOrder,
-  normalizeDueInput,
-  orderForPosition,
-} from '@sylvie/core';
+import { UNGROUPED, nextNewOrder, orderForPosition } from '@sylvie/core';
 import type { AppSettings, Priority, Task, TaskData } from '@sylvie/core';
+import { normalizeDueInput } from '@sylvie/utils';
 import type {
   CreateTaskInput,
   MoveTaskInput,

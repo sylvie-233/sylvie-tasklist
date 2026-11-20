@@ -1,4 +1,5 @@
-import { UNGROUPED, describeDue, sortTasks } from '@sylvie/core';
+import { UNGROUPED, sortTasks } from '@sylvie/core';
+import { describeDue } from '@sylvie/utils';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 

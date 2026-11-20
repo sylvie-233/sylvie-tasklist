@@ -16,8 +16,5 @@
     "@sylvie/tsconfig": "workspace:*",
     "rimraf": "^6.0.1",
     "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "date-fns": "^4.1.0"
   }
 }

@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from 'react';
 
-import { cn } from '../lib/cn';
+import { cn } from '@sylvie/utils';
 
 export interface FieldProps {
   label: ReactNode;

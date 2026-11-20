@@ -1,6 +1,6 @@
 import type { CSSProperties, JSX, ReactNode } from 'react';
 
-import { cn } from '../lib/cn';
+import { cn } from '@sylvie/utils';
 
 export type ChipTone = 'default' | 'ghost' | 'high' | 'mid' | 'low' | 'overdue' | 'done';
 

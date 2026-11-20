@@ -1,13 +1,6 @@
 import { useEffect, useRef, type JSX } from 'react';
 
-import {
-  PRIORITY_TEXT,
-  describeDue,
-  formatDateTime,
-  formatDueFull,
-  groupColor,
-  viewTasks,
-} from '@sylvie/core';
+import { PRIORITY_TEXT, groupColor, viewTasks } from '@sylvie/core';
 import type { Task } from '@sylvie/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -15,8 +8,13 @@ import { Chip, EmptyState, IconButton } from '@sylvie/ui';
 import { Calendar, Clock, Pencil, Trash2, TriangleAlert } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { shouldIgnoreClick } from '../dragGuard';
-import { hexToRgba } from '../helpers';
+import {
+  describeDue,
+  formatDateTime,
+  formatDueFull,
+  hexToRgba,
+  shouldIgnoreClick,
+} from '@sylvie/utils';
 import type { FlashState } from '../store/taskStore';
 import { useTaskStore } from '../store/taskStore';
 
