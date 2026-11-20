@@ -1,0 +1,23 @@
+{
+  "name": "@sylvie/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sylvie TaskList 领域模型：类型、默认值、排序、迁移与设置定义（内部包，直接以 TS 源码形式被应用消费）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .turbo"
+  },
+  "devDependencies": {
+    "@sylvie/tsconfig": "workspace:*",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  }
+}
