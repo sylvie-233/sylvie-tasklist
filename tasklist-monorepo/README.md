@@ -15,6 +15,7 @@
 | 设计系统 | `packages/ui`：Radix UI（Dialog / Switch）+ 自有设计令牌 |
 | 交互 | **@dnd-kit**（任务与分组拖拽）、**motion**（列表布局动画）、**sonner**（Toast） |
 | 工具库 | `@sylvie/utils`：className 合并、颜色转换、日期格式化、拖拽点击守卫（零业务依赖） |
+| 代码质量 | ESLint 9 平面配置（`@sylvie/eslint-config`：base / react）+ Prettier |
 | 日期 | date-fns |
 | 服务端 | **Hono** + **@modelcontextprotocol/sdk**（MCP，官方 SDK 的 Streamable HTTP，独立在 `packages/mcp`） |
 
@@ -54,9 +55,12 @@ tasklist-monorepo/
     ├── mcp/                       # MCP 服务：工具定义 + Hono HTTP 传输 + TaskListRepository 端口
     ├── ui/                        # 设计系统：令牌、Button/Chip/Field/Modal/Switch/Toaster 等
     ├── utils/                     # 通用工具：cn / 颜色 / 日期 / 交互守卫（无业务语义）
+    ├── eslint-config/             # 共享 ESLint 平面配置（base / react）
     └── tsconfig/                  # 共享 TypeScript 配置
 ```
 
+- `packages/eslint-config` 提供两套平面配置：`base`（纯 TS / Node）与 `react`（React 19 + hooks），
+  各包只需一行 `eslint.config.js` 引入；`lint` 由 turbo 并行执行且 `--max-warnings 0`。
 - `packages/utils` 只放与业务无关的纯函数：日期格式化（date-fns）、颜色转换、`cn`、拖拽后的点击抑制；
   UI、MCP、主进程与领域层共用同一份实现，避免各处复制小工具。
 
@@ -77,6 +81,9 @@ pnpm desktop:dev       # 开发模式（electron-forge start + Vite HMR）
 pnpm desktop:package   # 打包为免安装目录（dist/）
 pnpm desktop:make      # 生成 Windows 安装包（Squirrel.Windows + ZIP，输出 dist/make）
 pnpm typecheck         # 全仓库类型检查
+pnpm lint              # 全仓库 ESLint（--max-warnings 0）
+pnpm lint:fix          # 自动修复可修复项
+pnpm format            # Prettier 格式化
 ```
 
 图标已随仓库提交；如需重新生成：`pnpm --filter @sylvie/electron icon`。
@@ -199,5 +206,5 @@ curl -s -X POST http://127.0.0.1:37821/mcp \
 ## 已知限制
 
 - 安装包未做代码签名，Squirrel 安装时会触发 SmartScreen 提示；
-- 未接入 ESLint / 单元测试，类型检查 + 打包 + 截图回归是当前验证手段；
+- 未接入单元测试（类型检查 + ESLint + 打包 + 截图回归是当前验证手段）；
 - 渲染进程产物约 530 KB（dnd-kit + Radix + motion），桌面场景未做代码分割。
