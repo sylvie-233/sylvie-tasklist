@@ -56,6 +56,9 @@ export async function bootstrapStore(): Promise<LoadResult> {
 
   window.desktop.onMcpStatus((status) => useTaskStore.getState().setMcpStatus(status));
   window.desktop.onTasksChanged((data) => useTaskStore.getState().replaceData(data));
+  window.desktop.onSettingsChanged((settings) =>
+    useTaskStore.getState().replaceSettings(settings),
+  );
 
   const status = await window.desktop.getMcpStatus();
   useTaskStore.getState().setMcpStatus(status);

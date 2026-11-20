@@ -8,6 +8,7 @@ export default defineConfig({
     // 显式 alias 保证主进程打包时走源码而不是 node_modules 中的符号链接。
     alias: {
       '@sylvie/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      '@sylvie/mcp': fileURLToPath(new URL('../../packages/mcp/src/index.ts', import.meta.url)),
     },
   },
 });

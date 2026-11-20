@@ -49,6 +49,8 @@ const api: DesktopApi = {
     subscribe('window:maximized-changed', listener),
   onTasksChanged: (listener: (tasks: TaskData) => void): (() => void) =>
     subscribe('tasks:changed', listener),
+  onSettingsChanged: (listener: (settings: AppSettings) => void): (() => void) =>
+    subscribe('settings:changed', listener),
 };
 
 contextBridge.exposeInMainWorld('desktop', api);

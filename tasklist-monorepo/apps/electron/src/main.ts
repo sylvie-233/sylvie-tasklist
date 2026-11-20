@@ -17,15 +17,14 @@ import {
   createSampleTaskData,
   migrateSettings,
   migrateTaskData,
-  nextNewOrder,
   serializeSettings,
-  UNGROUPED,
 } from '@sylvie/core';
-import type { AppSettings, Task, TaskData, TaskDraft } from '@sylvie/core';
+import type { AppSettings, TaskData } from '@sylvie/core';
+import { startMcpHttpServer, type McpHttpServerHandle } from '@sylvie/mcp';
 
 import type { AppInfo, AppPaths, FileOpResult, LoadResult, McpStatus } from './desktop-types';
 import { attachDevCapture } from './dev-capture';
-import { startMcpServer, type McpServerHandle } from './mcp-server';
+import { createTaskListRepository } from './task-repository';
 
 const TASKS_FILE = 'tasks.json';
 const SETTINGS_FILE = 'settings.json';
@@ -36,7 +35,7 @@ let tray: Tray | null = null;
 let quitting = false;
 let tasksCache: TaskData | null = null;
 let settingsCache: AppSettings | null = null;
-let mcpHandle: McpServerHandle | null = null;
+let mcpHandle: McpHttpServerHandle | null = null;
 let mcpError: string | undefined;
 
 function getPaths(): AppPaths {
@@ -128,36 +127,36 @@ function pushMcpStatus(): void {
   broadcast('mcp:status-changed', currentMcpStatus());
 }
 
-/** MCP 创建任务：写入缓存 + 落盘 + 通知渲染进程刷新。 */
-function createTaskFromMcp(draft: TaskDraft): Task {
+function requireTasks(): TaskData {
   if (!tasksCache) {
     throw new Error('任务数据尚未加载');
   }
-  const data = tasksCache;
-  const group =
-    draft.group === UNGROUPED || data.groups.includes(draft.group) ? draft.group : UNGROUPED;
-  const task: Task = {
-    id: data.seq,
-    createdAt: Date.now(),
-    order: nextNewOrder(data.tasks),
-    done: false,
-    completedAt: null,
-    title: draft.title,
-    note: draft.note,
-    group,
-    priority: draft.priority,
-    dueAt: draft.dueAt,
-  };
-  tasksCache = {
-    ...data,
-    seq: data.seq + 1,
-    tasks: [...data.tasks, task],
-  };
-  void persistTasks(tasksCache).catch((error: unknown) => {
-    console.error('[desktop] MCP 创建任务后保存失败', error);
+  return tasksCache;
+}
+
+function requireSettings(): AppSettings {
+  if (!settingsCache) {
+    throw new Error('应用配置尚未加载');
+  }
+  return settingsCache;
+}
+
+/** MCP 侧写任务：更新缓存 + 原子落盘 + 通知渲染进程。 */
+function commitTasks(next: TaskData): void {
+  tasksCache = next;
+  void persistTasks(next).catch((error: unknown) => {
+    console.error('[desktop] MCP 写入 tasks.json 失败', error);
   });
-  broadcast('tasks:changed', tasksCache);
-  return task;
+  broadcast('tasks:changed', next);
+}
+
+/** MCP 侧写配置：更新缓存 + 落盘 + 通知渲染进程。 */
+function commitSettings(next: AppSettings): void {
+  settingsCache = next;
+  void persistSettings(next).catch((error: unknown) => {
+    console.error('[desktop] MCP 写入 settings.json 失败', error);
+  });
+  broadcast('settings:changed', next);
 }
 
 async function applyMcpEnabled(enabled: boolean): Promise<McpStatus> {
@@ -176,11 +175,15 @@ async function applyMcpEnabled(enabled: boolean): Promise<McpStatus> {
   }
 
   try {
-    mcpHandle = await startMcpServer({
+    mcpHandle = await startMcpHttpServer({
       port: MCP_DEFAULT_PORT,
-      getData: () => tasksCache ?? { groups: [], groupColors: {}, seq: 1, tasks: [] },
-      createTask: createTaskFromMcp,
-      appVersion: app.getVersion(),
+      version: app.getVersion(),
+      repo: createTaskListRepository({
+        getTasks: requireTasks,
+        commitTasks,
+        getSettings: requireSettings,
+        commitSettings,
+      }),
     });
     mcpError = undefined;
   } catch (error) {

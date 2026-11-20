@@ -46,6 +46,7 @@ export interface TaskStore {
 
   hydrate: (data: TaskData, settings: AppSettings) => void;
   replaceData: (data: TaskData) => void;
+  replaceSettings: (settings: AppSettings) => void;
   setMcpStatus: (status: McpStatus) => void;
 
   setView: (patch: Partial<ViewState>) => void;
@@ -80,6 +81,7 @@ export const useTaskStore = create<TaskStore>()(
 
     hydrate: (data, settings) => set({ data, settings }),
     replaceData: (data) => set({ data }),
+    replaceSettings: (settings) => set({ settings }),
     setMcpStatus: (mcp) => set({ mcp }),
 
     setView: (patch) => set((state) => ({ view: { ...state.view, ...patch } })),

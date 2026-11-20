@@ -52,6 +52,8 @@ export interface DesktopApi {
   onMcpStatus(listener: (status: McpStatus) => void): () => void;
   /** 订阅窗口最大化状态变化，返回取消订阅函数。 */
   onMaximizedChange(listener: (maximized: boolean) => void): () => void;
-  /** 订阅主进程侧产生的任务变更（如 MCP 创建任务），返回取消订阅函数。 */
+  /** 订阅主进程侧产生的任务变更（如 MCP 写任务），返回取消订阅函数。 */
   onTasksChanged(listener: (tasks: TaskData) => void): () => void;
+  /** 订阅主进程侧产生的配置变更（如 MCP 重命名分组联动默认分组），返回取消订阅函数。 */
+  onSettingsChanged(listener: (settings: AppSettings) => void): () => void;
 }
