@@ -237,6 +237,26 @@ commitSettings(next) → state.settings = next → persistSettings(next) → bro
 - `McpStatus = { running, port, error? }` 通过 `mcp:status` 查询、`mcp:status-changed` 推送，
   渲染层 store 里的 `mcpStatus` 是唯一数据源。
 
+### 7.1 客户端配置片段
+
+设置 → MCP 服务 开启后会显示可一键复制的 JSON（端口跟随实际监听端口，写入剪贴板由主进程
+`clipboard` 完成，避免 `file://` 下 Clipboard API 不可靠）：
+
+```json
+{
+  "mcpServers": {
+    "sylvie-tasklist": {
+      "type": "http",
+      "url": "http://127.0.0.1:37821/mcp"
+    }
+  }
+}
+```
+
+- Claude Desktop / Cursor 等：直接粘贴到客户端配置的 `mcpServers`；
+- VS Code（`.vscode/mcp.json`）：根键改为 `servers`，内容不变；
+- 服务未运行（开关关闭或启动失败）时不展示配置块，避免把无效地址贴进客户端。
+
 ## 8. 安全与边界
 
 - **仅回环监听**，无鉴权：同一台机器上的其他进程（同一用户）可以访问。这是本地工具的常见取舍，

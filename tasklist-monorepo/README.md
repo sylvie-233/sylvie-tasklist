@@ -112,6 +112,7 @@ tasklist-monorepo/
 
 - 端点：`POST http://127.0.0.1:37821/mcp`（Streamable HTTP），`GET /health` 探活；
   按 `mcp-session-id` 维护会话，仅监听回环地址，端口占用时自动顺延
+- 客户端配置：开启后设置页展示可一键复制的 `mcpServers` JSON（URL 跟随实际端口）
 - 工具：
   - 查询：`list_tasks`、`get_task`、`get_overview`、`list_groups`、`get_settings`
   - 任务：`create_task`、`update_task`、`set_task_done`、`delete_task`、`move_task`

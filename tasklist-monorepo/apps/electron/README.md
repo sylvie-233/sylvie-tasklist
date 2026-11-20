@@ -68,6 +68,7 @@ apps/electron/
 | `storage:save-settings`                                       | invoke | 迁移 + 落盘，并**立即应用** `mcp.serverEnabled` |
 | `app:info`                                                    | invoke | 版本、平台、数据路径                            |
 | `shell:open-data-folder`                                      | invoke | 打开 `userData` 目录                            |
+| `clipboard:write-text`                                        | invoke | 写入系统剪贴板（复制 MCP 配置等）               |
 | `tasks:export` / `tasks:import`                               | invoke | 任务备份导入导出（保存/打开对话框）             |
 | `settings:export` / `settings:import`                         | invoke | 配置导入导出（导出保留点分键顺序）              |
 | `window:minimize` / `window:toggle-maximize` / `window:close` | send   | 自绘标题栏三键                                  |
@@ -130,6 +131,7 @@ TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_VIEW=task pnpm desktop:dev       # �
 ```
 
 截图延迟 2s（设置页额外 900ms）等待数据加载与动画结束；生产启动不会触发。
+`TASKLIST_CAPTURE_CLICK=<选择器>` 可在截图前点击任意元素（例如验证「复制配置」按钮）。
 
 ## 依赖与工程约定
 
