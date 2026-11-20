@@ -11,13 +11,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "clean": "rimraf .turbo",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@sylvie/eslint-config": "workspace:*",
     "@sylvie/tsconfig": "workspace:*",
     "eslint": "^9.18.0",
     "rimraf": "^6.0.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.1.1"
   }
 }
