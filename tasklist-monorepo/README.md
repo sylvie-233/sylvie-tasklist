@@ -1,210 +1,130 @@
 # Sylvie TaskList
 
-本地任务清单桌面应用（仅 Windows）。Electron Forge + Vite + React 19，数据完全保存在本机，无网络依赖。
+> 本地任务清单桌面应用（仅 Windows）。分组、优先级、截止时间与拖拽排序，数据全部保存在本机，无网络依赖；
+> 内置 MCP Server，可让 AI 助手直接读写任务。
 
-> 产品设计见 [`../docs/任务清单v1功能规划.md`](../docs/任务清单v1功能规划.md) 与交互原型
-> [`../docs/任务清单-v1原型.html`](../docs/任务清单-v1原型.html)。
+![主界面](docs/screenshots/main.png)
+
+## 功能特性
+
+- **任务管理**：新建 / 编辑 / 删除 / 勾选完成，点击卡片直接打开详情；创建、截止、完成时间自动记录。
+- **组织方式**：可设颜色的分组、高 / 中 / 低优先级、可选截止时间，逾期任务红色标记。
+- **列表视图**：全部 / 进行中 / 已完成筛选，关键字搜索，自定义 / 优先级 / 截止时间 / 创建时间四种排序。
+- **拖拽交互**：拖动任务自动切到「自定义排序」并持久化；拖到侧边栏直接换分组；分组本身也可拖拽排序。
+- **设置中心**：VSCode 风格分类导航 + 搜索 + `settings.json` 编辑器；主题（亮 / 暗 / 跟随系统）、字号、关闭行为等。
+- **数据自持**：`tasks.json` / `settings.json` 双文件，支持导入导出备份与旧格式自动迁移。
+- **MCP Server**：开关即时生效，13 个工具覆盖任务与分组增删改查，状态栏显示运行指示。
+
+## 界面预览
+
+| 设置 · 配置文件                        | 任务详情                                      |
+| -------------------------------------- | --------------------------------------------- |
+| ![设置](docs/screenshots/settings.png) | ![任务详情](docs/screenshots/task-detail.png) |
+
+暗色主题：
+
+![暗色主题](docs/screenshots/dark.png)
 
 ## 技术栈
 
-| 层 | 选型 |
-| --- | --- |
-| 桌面容器 | Electron Forge 8 + Vite 8（`plugin-vite`） |
-| 界面 | React 19 + TypeScript + Tailwind CSS 4 |
-| 状态 | **zustand**（含 `subscribeWithSelector`，非 React 侧订阅落盘） |
-| 设计系统 | `packages/ui`：Radix UI（Dialog / Switch）+ 自有设计令牌 |
-| 交互 | **@dnd-kit**（任务与分组拖拽）、**motion**（列表布局动画）、**sonner**（Toast） |
-| 工具库 | `@sylvie/utils`：className 合并、颜色转换、日期格式化、拖拽点击守卫（零业务依赖） |
-| 代码质量 | ESLint 9 平面配置（`@sylvie/eslint-config`：base / react）+ Prettier |
-| 日期 | date-fns |
-| 服务端 | **Hono** + **@modelcontextprotocol/sdk**（MCP，官方 SDK 的 Streamable HTTP，独立在 `packages/mcp`） |
-
-原则：协议、弹窗、拖拽、动画、Toast 一律用成熟库，业务侧只写领域逻辑与视图组装。
-
-## 目录结构
-
-```
-tasklist-monorepo/
-├── apps/
-│   └── electron/
-│       ├── forge.config.ts        # 打包与 maker 配置（Squirrel.Windows / ZIP，输出 dist/）
-│       ├── assets/                # 图标（scripts/generate-icon.mjs 生成，零依赖）
-│       └── src/
-│           ├── main.ts            # 主进程入口：只做生命周期与模块装配（~70 行）
-│           ├── main/              # 主进程按域拆分
-│           │   ├── context.ts     # 进程级状态 / 路径 / 信息 / 广播
-│           │   ├── storage.ts     # tasks.json / settings.json 原子读写与迁移
-│           │   ├── window.ts      # 主窗口创建、显隐、关闭行为
-│           │   ├── tray.ts        # 系统托盘与菜单
-│           │   ├── ipc/           # IPC 按域注册：storage / files / window / mcp
-│           │   ├── mcp/           # MCP 启停服务 + TaskListRepository 适配
-│           │   └── dev-capture.ts # 开发用截图钩子（GUI 回归）
-│           ├── preload.ts         # contextBridge 暴露 window.desktop
-│           ├── renderer.tsx       # 渲染进程入口
-│           ├── index.css          # 应用布局样式（设计令牌来自 @sylvie/ui）
-│           └── app/
-│               ├── App.tsx        # 壳层：DndContext、弹窗编排、快捷键、主题
-│               ├── store/
-│               │   ├── taskStore.ts   # zustand store（数据 / 设置 / 视图 / 反馈）
-│               │   └── bootstrap.ts   # 启动加载 + 防抖落盘 + 主进程事件
-│               ├── useAppearance.ts   # 主题与字号映射（含跟随系统）
-│               ├── dragGuard.ts       # 拖拽结束后的点击抑制
-│               └── components/        # TitleBar / MenuBar / Sidebar / Toolbar / TaskList / TaskDialog / SettingsPanel / StatusBar
-└── packages/
-    ├── core/                      # 领域模型：类型 / 默认值 / 排序 / 迁移 / 设置 schema
-    ├── mcp/                       # MCP 服务：工具定义 + Hono HTTP 传输 + TaskListRepository 端口
-    ├── ui/                        # 设计系统：令牌、Button/Chip/Field/Modal/Switch/Toaster 等
-    ├── utils/                     # 通用工具：cn / 颜色 / 日期 / 交互守卫（无业务语义）
-    ├── eslint-config/             # 共享 ESLint 平面配置（base / react）
-    └── tsconfig/                  # 共享 TypeScript 配置
-```
-
-- `packages/eslint-config` 提供两套平面配置：`base`（纯 TS / Node）与 `react`（React 19 + hooks），
-  各包只需一行 `eslint.config.js` 引入；`lint` 由 turbo 并行执行且 `--max-warnings 0`。
-- `packages/utils` 只放与业务无关的纯函数：日期格式化（date-fns）、颜色转换、`cn`、拖拽后的点击抑制；
-  UI、MCP、主进程与领域层共用同一份实现，避免各处复制小工具。
-
-- `packages/mcp` 不依赖 Electron：只声明 `TaskListRepository` 端口（读数据 / 建任务 / 改分组…），
-  由宿主（主进程）实现并通过 `startMcpHttpServer({ repo, version, port })` 注入，便于以后在其他运行时复用。
-
-- `packages/core` 与 `packages/ui` 以 **TS 源码**形式被应用消费（`exports` 指向 `src/index.ts`），
-  由 Vite alias 直接参与打包，省掉构建产物与 watch 流程；因此不适合直接发布 npm。
-- `packages/ui` 只内置**无业务语义**的组件；任务卡片、设置面板等业务组装留在应用内。
-- pnpm 开启了 `public-hoist-pattern`（见 `.npmrc`），否则 Vite 预打包无法解析 Radix / dnd-kit 的传递依赖。
+- **桌面**：Electron Forge 8 + Vite 8（`plugin-vite`），Windows 打包 Squirrel.Windows / ZIP
+- **界面**：React 19 + TypeScript + Tailwind CSS 4
+- **状态**：zustand（`subscribeWithSelector` 订阅落盘）、perfect-debounce
+- **组件**：`@sylvie/ui`（Radix Dialog / Switch、sonner、设计令牌）
+- **交互**：@dnd-kit（拖拽）、motion（列表布局动画）
+- **MCP**：`@sylvie/mcp`（Hono + @modelcontextprotocol/sdk，Streamable HTTP）
+- **工程**：pnpm workspace + Turborepo + ESLint 9 + Prettier
 
 ## 快速开始
 
 ```bash
 pnpm install
 
-pnpm desktop:dev       # 开发模式（electron-forge start + Vite HMR）
-pnpm desktop:package   # 打包为免安装目录（dist/）
-pnpm desktop:make      # 生成 Windows 安装包（Squirrel.Windows + ZIP，输出 dist/make）
+pnpm desktop:dev       # 开发模式（Vite HMR）
+pnpm desktop:package   # 免安装目录 → apps/electron/dist
+pnpm desktop:make      # Windows 安装包 → apps/electron/dist/make
 pnpm typecheck         # 全仓库类型检查
-pnpm lint              # 全仓库 ESLint（--max-warnings 0）
-pnpm lint:fix          # 自动修复可修复项
-pnpm format            # Prettier 格式化
+pnpm lint              # ESLint（--max-warnings 0）
 ```
 
-图标已随仓库提交；如需重新生成：`pnpm --filter @sylvie/electron icon`。
-
-界面回归截图（无需 UI 自动化工具）：
+界面回归截图（无需 UI 自动化）：
 
 ```bash
-TASKLIST_CAPTURE=shot.png pnpm desktop:dev                       # 主界面
-TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_SETTINGS=1 pnpm desktop:dev  # 打开设置页
+TASKLIST_CAPTURE=shot.png pnpm desktop:dev                                  # 主界面
+TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_VIEW=settings pnpm desktop:dev   # 设置页
+TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_VIEW=task pnpm desktop:dev       # 任务详情
 ```
 
-## 数据模型
+## 目录结构
 
-两份 JSON 文件，均位于 `%APPDATA%/Sylvie TaskList/`（Electron `app.getPath('userData')`）：
+```text
+tasklist-monorepo/
+├── apps/electron/
+│   ├── forge.config.ts      # 打包与 maker（Squirrel.Windows / ZIP，输出 dist/）
+│   └── src/
+│       ├── main.ts          # 主进程入口：生命周期与模块装配
+│       ├── main/            # context / storage / window / tray / ipc / mcp
+│       ├── preload.ts       # contextBridge → window.desktop
+│       └── app/             # zustand store + 业务组件（Sidebar / TaskList / SettingsPanel…）
+└── packages/
+    ├── core/                # 领域模型：类型 / 排序 / 迁移 / 设置 schema
+    ├── ui/                  # 设计系统：Radix + sonner + 设计令牌
+    ├── mcp/                 # MCP 工具 + Hono 传输（TaskListRepository 端口，不依赖 Electron）
+    ├── utils/               # cn / 颜色 / 日期 / 拖拽守卫
+    ├── eslint-config/       # 共享 ESLint 配置（base / react）
+    └── tsconfig/            # 共享 TypeScript 配置
+```
 
-| 文件 | 职责 |
-| --- | --- |
-| `tasks.json` | 分组、分组颜色、任务列表（用户数据） |
-| `settings.json` | 应用配置（点分命名空间扁键，与 VSCode 风格一致） |
+`core` 与 `ui` 以 TS 源码形式被消费（`exports` 指向 `src/index.ts`，Vite alias 直连），
+省掉构建产物与 watch 流程，因此不单独发布 npm。
 
-`tasks.json` 中的任务：
+## 数据与配置
 
+两份 JSON 文件，位于 `%APPDATA%/Sylvie TaskList/`：
+
+| 文件            | 职责                                                                     |
+| --------------- | ------------------------------------------------------------------------ |
+| `tasks.json`    | 分组、分组颜色、任务列表                                                 |
+| `settings.json` | 应用配置（点分命名空间扁键，如 `appearance.theme`、`mcp.serverEnabled`） |
+
+<!-- prettier-ignore -->
 ```jsonc
 {
   "id": 1,
-  "createdAt": 1763612345000,      // 创建时间（ms）
-  "order": 1763612344999,          // 自定义排序值（可选，仅拖拽过才写入）
+  "createdAt": 1763612345000, // 创建时间（ms）
+  "order": 1763612344999, // 自定义排序值，仅拖拽过才写入
   "done": false,
-  "completedAt": null,             // 完成时间，取消完成时置 null
+  "completedAt": null, // 取消完成时置 null
   "title": "完成 v1 原型评审",
-  "note": "对照功能清单逐项确认",
   "group": "工作",
-  "priority": "high",              // high | mid | low
-  "dueAt": "2026-11-21T18:00"      // 截止时间，空串表示未设置
+  "priority": "high", // high | mid | low
+  "dueAt": "2026-11-21T18:00" // 空串表示未设置
 }
 ```
 
-`settings.json`（默认值）：
-
-```json
-{
-  "appearance.theme": "light",
-  "appearance.fontSize": "standard",
-  "window.closeAction": "tray",
-  "task.defaultGroup": "工作",
-  "task.defaultPriority": "mid",
-  "task.overdueHighlight": true,
-  "mcp.serverEnabled": false
-}
-```
-
-容错策略（`packages/core/src/migration.ts`）：
-
-- 旧字段名 `created` / `due` 自动迁移为 `createdAt` / `dueAt`，纯日期截止时间补 `T09:00`；
-- 未知配置键忽略，值类型或枚举非法时回退默认值；
-- 归属到已删除分组的任务归入「未分组」，无标题的坏任务丢弃；
-- 首次启动写入示例数据。
-
-## 状态与持久化
-
-- `taskStore.ts` 用 zustand 定义唯一的应用状态：`data` / `settings` / `view` / `flash` / `mcp`；
-- 组件通过 `useTaskStore(state => state.xxx)` 选择性订阅，避免全局重渲染；
-- `bootstrap.ts` 在启动时 `hydrate`，并用 `subscribeWithSelector` 订阅 `data` 与 `settings`，
-  经 `perfect-debounce` 防抖后走 IPC 落盘；内容未变化时跳过写入（避免 MCP 回写造成回声）；
-- 视图状态（分组 / 筛选 / 排序 / 搜索）是会话级内存状态，不写入文件。
-
-## 交互实现要点
-
-- **拖拽**：一个 `DndContext` 同时服务任务列表（`SortableContext`）与侧边栏分组；
-  把任务拖到分组项上 = 移动分组，拖动分组 = 调整顺序；拖动后自动切到「自定义排序」。
-- **动画**：列表重排、完成沉底用 `motion` 的 `layout` 动画，不再手写 FLIP；
-- **弹窗 / 开关 / Toast**：Radix Dialog、Radix Switch、sonner，Esc / 遮罩点击 / 焦点陷阱由库负责。
+容错：旧字段 `created` / `due` 自动迁移为 `createdAt` / `dueAt`（纯日期补 `T09:00`）；
+未知配置键忽略、非法值回退默认；已删除分组的任务归入「未分组」。
+视图状态（分组 / 筛选 / 排序 / 搜索）只存在内存中，不写盘。
 
 ## MCP Server
 
-设置 → MCP 服务 中开启「启动 MCP Server」，**立即生效无需重启**；运行后状态栏右下角显示绿点。
+设置 → MCP 服务 开启后**立即生效**，状态栏右下角显示绿点。
 
-- 端点：`POST http://127.0.0.1:37821/mcp`（Streamable HTTP，JSON 响应），`GET /health` 探活
-- 会话：按 `mcp-session-id` 头维护（SDK 规范要求，首次 `initialize` 的响应头返回该 id）
-- 只监听回环地址；端口被占用时自动向后寻找（37821 起，最多 10 个）
-- 工具（共 13 个，定义在 `packages/mcp/src/tools`）：
+- 端点：`POST http://127.0.0.1:37821/mcp`（Streamable HTTP），`GET /health` 探活；
+  按 `mcp-session-id` 维护会话，仅监听回环地址，端口占用时自动顺延
+- 工具：
+  - 查询：`list_tasks`、`get_task`、`get_overview`、`list_groups`、`get_settings`
+  - 任务：`create_task`、`update_task`、`set_task_done`、`delete_task`、`move_task`
+  - 分组：`create_group`、`update_group`、`delete_group`
+- 入参由 zod 校验；写操作统一「更新缓存 → 原子落盘 → 广播界面」
 
-  | 分类 | 工具 | 说明 |
-  | --- | --- | --- |
-  | 查询 | `list_tasks` | 分组 / 状态 / 优先级 / 关键词 / 逾期 / 截止区间过滤，可指定排序与条数 |
-  | 查询 | `get_task` | 按 id 取单个任务 |
-  | 查询 | `get_overview` | 总数 / 进行中 / 已完成 / 逾期、按分组分布、最近到期任务 |
-  | 查询 | `list_groups` | 分组列表（颜色 + 计数，含「未分组」） |
-  | 查询 | `get_settings` | 读取当前应用配置 |
-  | 任务 | `create_task` | 创建任务（分组省略时用默认分组） |
-  | 任务 | `update_task` | 改标题 / 备注 / 分组 / 优先级 / 截止时间（`dueAt: ""` 清空） |
-  | 任务 | `set_task_done` | 标记完成 / 恢复进行中（自动维护完成时间） |
-  | 任务 | `delete_task` | 删除任务 |
-  | 任务 | `move_task` | 改分组，或按 `beforeId` / `afterId` 调整自定义顺序 |
-  | 分组 | `create_group` | 新建分组（可带 `#RRGGBB` 颜色） |
-  | 分组 | `update_group` | 重命名（联动任务）/ 改色（空串清除） |
-  | 分组 | `delete_group` | 删除分组（任务归入「未分组」，返回迁移条数） |
+## 文档
 
-- 入参校验由 zod 完成；业务错误（任务不存在、分组重名、颜色非法等）以 `isError: true` 的工具结果返回；
-- 所有写操作经仓库端口回到主进程：更新缓存 → 原子落盘 → 广播给渲染进程，界面实时同步
-
-手动联调：
-
-```bash
-# 1) 初始化，拿 session id
-curl -s -D - -o /dev/null -X POST http://127.0.0.1:37821/mcp \
-  -H 'content-type: application/json' \
-  -H 'accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}' \
-  | grep -i mcp-session-id
-
-# 2) 带 session id 调用工具
-curl -s -X POST http://127.0.0.1:37821/mcp \
-  -H 'content-type: application/json' \
-  -H 'accept: application/json, text/event-stream' \
-  -H 'mcp-session-id: <上一步的 id>' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_tasks","arguments":{}}}'
-```
+- [功能规划](../docs/任务清单v1功能规划.md)：功能范围、交互规则与数据模型
+- [交互原型](../docs/任务清单-v1原型.html)：单文件 HTML 原型
 
 ## 已知限制
 
-- 安装包未做代码签名，Squirrel 安装时会触发 SmartScreen 提示；
-- 未接入单元测试（类型检查 + ESLint + 打包 + 截图回归是当前验证手段）；
-- 渲染进程产物约 530 KB（dnd-kit + Radix + motion），桌面场景未做代码分割。
+- 安装包未签名，Squirrel 安装会触发 SmartScreen 提示
+- 未接入单元测试（typecheck + ESLint + 打包 + 截图回归为当前验证手段）
+- 渲染产物约 530 KB（dnd-kit + Radix + motion），桌面场景未做代码分割
