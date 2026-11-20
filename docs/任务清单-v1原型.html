@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sylvie TaskList - v1 原型</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --panel: #ffffff;
+    --border: #e2e4e8;
+    --text: #24292f;
+    --text-sub: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --danger: #dc2626;
+    --high: #dc2626;
+    --mid: #d97706;
+    --low: #6b7280;
+    --hover: #f0f1f3;
+    --chip: #f0f1f3;
+    --titlebar: #e8eaed;
+    --desktop: #ccd0d6;
+  }
+  html.dark {
+    --bg: #1a1b1e;
+    --panel: #232529;
+    --border: #33363c;
+    --text: #e6e6e6;
+    --text-sub: #9ca3af;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --danger: #ef4444;
+    --high: #ef4444;
+    --mid: #f59e0b;
+    --low: #9ca3af;
+    --hover: #2b2d32;
+    --chip: #2b2d32;
+    --titlebar: #141518;
+    --desktop: #0c0d0f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--desktop);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    overflow: hidden;
+    user-select: none;
+    cursor: default;
+  }
+  /* 桌面窗口容器：模拟 Electron 应用窗口 */
+  .window {
+    position: relative;
+    width: min(980px, 92vw);
+    height: min(660px, 88vh);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.2);
+    overflow: hidden;
+  }
+  .desktop-hint {
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,.55);
+    font-size: 11px;
+  }
+  html:not(.dark) .desktop-hint { color: rgba(0,0,0,.35); }
+  input, textarea { user-select: text; }
+  button { font-family: inherit; }
+
+  /* ===== 自定义标题栏 ===== */
+  .titlebar {
+    height: 36px;
+    background: var(--titlebar);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .titlebar .app-icon {
+    width: 16px; height: 16px;
+    margin: 0 8px 0 12px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 10px; font-weight: 700;
+  }
+  .titlebar .app-name { font-size: 12px; font-weight: 600; }
+  .titlebar .win-drag { flex: 1; height: 100%; } /* Electron 中为 -webkit-app-region: drag */
+  .titlebar .win-controls { display: flex; height: 100%; }
+  .win-btn {
+    width: 46px; height: 100%;
+    border: none; background: none;
+    color: var(--text-sub);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .win-btn:hover { background: var(--hover); color: var(--text); }
+  .win-btn.close:hover { background: #e81123; color: #fff; }
+
+  /* ===== 菜单栏 ===== */
+  .menubar {
+    height: 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: stretch;
+    padding: 0 4px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 50;
+  }
+  .menu-item { position: relative; display: flex; align-items: center; }
+  .menu-item > .menu-label {
+    padding: 4px 12px;
+    display: flex; align-items: center;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .menu-item:hover > .menu-label,
+  .menu-item.open > .menu-label { background: var(--hover); }
+  .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    padding: 4px;
+    z-index: 60;
+  }
+  .menu-item.open .dropdown { display: block; }
+  .dropdown .entry {
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    white-space: nowrap;
+  }
+  .dropdown .entry:hover { background: var(--accent); color: #fff; }
+  .dropdown .entry .shortcut { font-size: 11px; opacity: .65; }
+  .dropdown .sep { height: 1px; background: var(--border); margin: 4px 6px; }
+
+  /* ===== 主体 ===== */
+  .main { display: flex; flex: 1; min-height: 0; }
+  .sidebar {
+    width: 190px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .side-label { font-size: 11px; color: var(--text-sub); padding: 4px 10px; letter-spacing: .5px; }
+  .side-item {
+    padding: 6px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .side-item:hover { background: var(--hover); }
+  .side-item.active { background: var(--chip); font-weight: 600; }
+  .side-item .name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 分组颜色圆点 */
+  .side-item .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .side-item .dot.dot-default { background: var(--text-sub); opacity: .4; }
+  .side-item .count { font-size: 11px; color: var(--text-sub); }
+  .side-item .del-group,
+  .side-item .edit-group {
+    display: none;
+    border: none; background: none;
+    color: var(--text-sub); cursor: pointer;
+    font-size: 15px; line-height: 1;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .side-item .edit-group { font-size: 12px; }
+  .side-item:hover .del-group,
+  .side-item:hover .edit-group { display: block; }
+  .side-item .del-group:hover { color: var(--danger); background: var(--hover); }
+  .side-item .edit-group:hover { color: var(--accent); background: var(--hover); }
+  .side-item.dragging { opacity: .35; }
+  .side-item.drop-target { outline: 1px dashed var(--accent); outline-offset: -1px; }
+  .side-add {
+    padding: 6px 10px;
+    border-radius: 5px;
+    color: var(--text-sub);
+    cursor: pointer;
+    border: 1px dashed var(--border);
+    text-align: center;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .side-add:hover { color: var(--accent); border-color: var(--accent); }
+
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  /* 工具行：搜索 + 过滤 + 排序 */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  .toolbar input[type="search"] {
+    flex: 0 1 220px;
+    min-width: 130px;
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    font-size: 12px;
+  }
+  .toolbar input[type="search"]:focus { border-color: var(--accent); }
+  .filter-tabs { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
+  .filter-tab {
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-sub);
+    font-size: 12px;
+    border: none; background: none;
+  }
+  .filter-tab.active { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .toolbar select {
+    margin-left: auto;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+  }
+  .toolbar .btn {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .toolbar .btn:hover { background: var(--hover); }
+  .toolbar .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toolbar .btn.primary:hover { background: var(--accent-hover); }
+
+  .list-area { flex: 1; overflow-y: auto; padding: 10px 14px; }
+
+  /* 任务项 */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+  .task {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .task:hover { border-color: var(--accent); }
+  .task input[type="checkbox"] {
+    width: 16px; height: 16px;
+    margin-top: 1px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+  .task-body { flex: 1; min-width: 0; cursor: pointer; } /* 点击条目主体 = 查看详情 */
+  .task-title { font-weight: 600; font-size: 13px; line-height: 1.45; }
+  .task-note { color: var(--text-sub); font-size: 12px; margin-top: 3px; line-height: 1.5; word-break: break-all; }
+  .task-meta { display: flex; gap: 5px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+  .task.done .task-title { text-decoration: line-through; color: var(--text-sub); }
+  .task.done .task-note { opacity: .6; }
+  .task.done { opacity: .75; }
+  .task.dragging { opacity: .35; }
+  .task.drop-target { border-color: var(--accent); border-style: dashed; }
+  .chip {
+    font-size: 11px;
+    padding: 0 7px;
+    border-radius: 9px;
+    background: var(--chip);
+    color: var(--text-sub);
+    line-height: 18px;
+  }
+  /* 幽灵样式：纯文字无底色，用于时间等次要信息，避免 meta 行全是"按钮感" */
+  .chip.ghost { background: transparent; padding: 0 3px; }
+  /* 优先级：软色底 + 彩字，视觉上一眼区分且不刺眼 */
+  .chip.p-high { color: var(--high); background: rgba(220, 38, 38, .09); }
+  .chip.p-mid { color: var(--mid); background: rgba(217, 119, 6, .11); }
+  .chip.p-low { color: var(--low); background: var(--chip); }
+  .chip.overdue { color: var(--danger); background: rgba(220, 38, 38, .09); border: 1px solid var(--danger); }
+  .chip.done-chip { color: #16a34a; background: rgba(22, 163, 74, .08); }
+  .task-actions { display: flex; gap: 2px; visibility: hidden; }
+  .task:hover .task-actions { visibility: visible; }
+  .icon-btn {
+    border: none; background: none; cursor: pointer;
+    color: var(--text-sub); font-size: 14px; padding: 3px 5px; border-radius: 4px;
+  }
+  .icon-btn:hover { background: var(--hover); color: var(--accent); }
+  .icon-btn.del:hover { color: var(--danger); }
+
+  .empty { text-align: center; color: var(--text-sub); padding: 90px 0; }
+  .empty .big { font-size: 36px; margin-bottom: 10px; }
+
+  /* ===== 底部状态栏 ===== */
+  .statusbar {
+    height: 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-sub);
+    flex-shrink: 0;
+  }
+  .statusbar .spacer { flex: 1; }
+  .mcp-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #16a34a;
+  }
+  .mcp-indicator .mcp-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 4px rgba(22, 163, 74, .5);
+  }
+
+  /* 弹窗 */
+  .mask {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .mask.show { display: flex; }
+  .dialog {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: min(400px, 92vw);
+    padding: 18px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.2);
+  }
+  .dialog h3 { font-size: 14px; margin-bottom: 12px; }
+  /* 任务表单：加宽弹窗 + 头部带关闭按钮 */
+  .dialog.wide { width: min(480px, 92vw); }
+  .dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .dialog-head h3 { margin-bottom: 0; }
+  .dlg-close {
+    width: 26px; height: 26px;
+    border: none; background: none;
+    border-radius: 5px;
+    color: var(--text-sub);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .dlg-close:hover { background: var(--hover); color: var(--text); }
+  .dialog .req { color: var(--danger); margin-left: 2px; }
+  .dialog .input-lg { font-size: 13px; padding: 7px 10px; }
+  .dialog .row { margin-top: 10px; }
+  .dialog label { display: block; font-size: 12px; color: var(--text-sub); margin: 8px 0 4px; }
+  .dialog input[type="text"], .dialog textarea, .dialog select, .dialog input[type="date"] {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    font-family: inherit;
+  }
+  .dialog textarea { resize: vertical; min-height: 52px; }
+  .dialog input:focus, .dialog textarea:focus, .dialog select:focus { border-color: var(--accent); }
+  .dialog .row { display: flex; gap: 10px; }
+  .dialog .row > div { flex: 1; }
+  /* 输入弹窗的色板行（创建分组选颜色） */
+  .dialog .color-row { margin-top: 12px; }
+  .dialog .color-row label { margin: 0 0 8px; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.selected { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+  .swatch.swatch-default { background: var(--chip); border: 2px dashed var(--border); }
+  .dialog .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .dialog .foot .btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .dialog .foot .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .dialog .foot .btn.primary:hover { background: var(--accent-hover); }
+  .dialog .foot .btn.danger { color: var(--danger); border-color: var(--danger); }
+  .dialog .foot .btn.danger:hover { background: var(--danger); color: #fff; }
+  .setting-path {
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 9px;
+    color: var(--text-sub);
+    word-break: break-all;
+    user-select: text;
+  }
+  .task-time-info {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 11px;
+    color: var(--text-sub);
+  }
+
+  /* ===== 设置界面（VSCode 风格） ===== */
+  .settings-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: min(880px, 92vw);
+    height: min(580px, 88vh);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    overflow: hidden;
+  }
+  .settings-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .settings-head h3 { font-size: 14px; }
+  .settings-head input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+  }
+  .settings-head input[type="text"]:focus { border-color: var(--accent); }
+  .settings-close {
+    width: 28px; height: 28px;
+    border: none; background: none;
+    border-radius: 5px;
+    color: var(--text-sub);
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .settings-close:hover { background: var(--hover); color: var(--text); }
+  .settings-body { display: flex; flex: 1; min-height: 0; }
+  .settings-nav {
+    width: 160px;
+    border-right: 1px solid var(--border);
+    padding: 8px 6px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    padding: 6px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text-sub);
+    font-size: 13px;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--hover); }
+  .nav-item.active { background: var(--chip); color: var(--text); font-weight: 600; }
+  .nav-item .n-count { font-size: 11px; opacity: .7; margin-left: 4px; }
+  .settings-content { flex: 1; overflow-y: auto; padding: 4px 20px 16px; }
+  .settings-content h4 {
+    font-size: 12px;
+    color: var(--text-sub);
+    font-weight: 600;
+    margin: 14px 0 4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .set-row {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .set-row:last-child { border-bottom: none; }
+  .set-info { flex: 1; min-width: 0; }
+  .set-title { font-size: 13px; font-weight: 500; }
+  .set-title .cat-tag {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-sub);
+    background: var(--chip);
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 6px;
+  }
+  .set-desc { font-size: 12px; color: var(--text-sub); margin-top: 3px; line-height: 1.5; }
+  .set-ctrl { flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding-top: 1px; }
+  .set-ctrl select {
+    width: 170px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+  }
+  .set-ctrl input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  /* 滑动切换开关（iOS / Windows 11 风格） */
+  .set-ctrl .toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px; height: 20px;
+    cursor: pointer;
+  }
+  .set-ctrl .toggle input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
+  .set-ctrl .toggle .track {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 10px;
+    transition: background .18s;
+  }
+  .set-ctrl .toggle .thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    transition: left .18s;
+  }
+  .set-ctrl .toggle:hover .track { filter: brightness(.92); }
+  .set-ctrl .toggle input:checked ~ .track { background: var(--accent); filter: none; }
+  .set-ctrl .toggle input:checked ~ .thumb { left: 22px; }
+  .set-ctrl .toggle input:focus-visible ~ .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .set-ctrl .toggle .state-label { font-size: 11px; color: var(--text-sub); }
+  .set-ctrl .mini-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .set-ctrl .mini-btn:hover { background: var(--hover); }
+  .hotkey-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hotkey-row:last-child { border-bottom: none; }
+  .hotkey-row kbd {
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    background: var(--chip);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    color: var(--text);
+  }
+  .json-editor {
+    width: 100%;
+    min-height: 220px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    outline: none;
+    resize: vertical;
+    user-select: text;
+  }
+  .json-editor:focus { border-color: var(--accent); }
+
+  .toast {
+    position: absolute;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+    z-index: 200;
+    white-space: nowrap;
+    max-width: 90%;
+  }
+  .toast.show { opacity: .95; }
+
+  /* ===== 动效与细节打磨（克制原则：快、轻、不喧宾夺主） ===== */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn  { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @keyframes winIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+  /* 亮暗主题切换时主要表面平滑过渡，避免生硬跳变 */
+  .window, .titlebar, .menubar, .sidebar, .toolbar, .statusbar,
+  .dialog, .settings-panel, .dropdown, .filter-tabs {
+    transition: background-color .22s ease, border-color .22s ease, color .22s ease;
+  }
+  .task {
+    transition: background-color .22s ease, border-color .22s ease, color .22s ease,
+                transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .chip { transition: background-color .22s ease, border-color .22s ease, color .22s ease; }
+
+  /* 交互元素悬停 / 按下的轻量过渡 */
+  .side-item, .nav-item, .menu-item > .menu-label, .dropdown .entry,
+  .icon-btn, .mini-btn, .btn, .win-btn, .filter-tab, .settings-close,
+  .side-add, .toolbar select, .set-ctrl select {
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .toolbar input[type="search"], .settings-head input[type="text"],
+  .dialog input, .dialog textarea, .dialog select, .json-editor {
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+
+  /* 输入聚焦：边框变色 + 柔和光圈 */
+  .toolbar input[type="search"]:focus,
+  .settings-head input[type="text"]:focus,
+  .dialog input:focus, .dialog textarea:focus, .dialog select:focus,
+  .json-editor:focus {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, .18);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  /* 按下反馈 */
+  .btn:active, .mini-btn:active, .icon-btn:active, .filter-tab:active { transform: scale(.96); }
+
+  /* 任务卡片悬停微抬升 */
+  .task:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0, 0, 0, .07); }
+  .task.dragging, .task.drop-target { transform: none; }
+
+  /* 勾选完成的即时反馈：卡片背景闪烁 */
+  @keyframes flashDone { 0%, 35% { background-color: rgba(22, 163, 74, .16); } 100% { background-color: var(--panel); } }
+  @keyframes flashUndone { 0%, 35% { background-color: rgba(37, 99, 235, .12); } 100% { background-color: var(--panel); } }
+  .task.flash-done { animation: flashDone .9s ease; }
+  .task.flash-undone { animation: flashUndone .9s ease; }
+
+  /* 弹窗：遮罩淡入 + 面板弹出 */
+  .mask.show { animation: fadeIn .18s ease; }
+  .mask.show .dialog, .mask.show .settings-panel { animation: popIn .2s cubic-bezier(.2, .8, .3, 1); }
+
+  /* 下拉菜单滑出 */
+  .menu-item.open .dropdown { animation: slideDown .15s ease; }
+
+  /* 窗口启动动画（模拟应用启动的淡入） */
+  .window { animation: winIn .3s cubic-bezier(.2, .8, .3, 1); }
+
+  /* 空状态淡入 */
+  .empty { animation: fadeIn .3s ease; }
+
+  /* Toast：底部滑入而非原地浮现 */
+  .toast { transition: opacity .22s ease, transform .22s ease; }
+  .toast:not(.show) { transform: translate(-50%, 8px); }
+
+  /* 滚动条：平时隐形，悬停内容区时显现（桌面软件的视觉降噪习惯） */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+  .list-area:hover::-webkit-scrollbar-thumb,
+  .settings-content:hover::-webkit-scrollbar-thumb,
+  .settings-nav:hover::-webkit-scrollbar-thumb { background: var(--border); }
+  .list-area::-webkit-scrollbar-thumb:hover,
+  .settings-content::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+  /* 尊重系统"减少动态效果"设置 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- 应用窗口（模拟 Electron 无边框窗口） -->
+<div class="window">
+
+<!-- 自定义标题栏（对应 Electron 无边框窗口） -->
+<div class="titlebar">
+  <div class="app-icon">S</div>
+  <span class="app-name">Sylvie TaskList</span>
+  <div class="win-drag"></div>
+  <div class="win-controls">
+    <button class="win-btn" title="最小化" onclick="mockWin('最小化')">─</button>
+    <button class="win-btn" title="最大化" onclick="mockWin('最大化')">▢</button>
+    <button class="win-btn close" title="关闭" onclick="mockWin('关闭')">✕</button>
+  </div>
+</div>
+
+<!-- 菜单栏（精简版：主要设置项已收纳进设置界面） -->
+<div class="menubar" id="menubar">
+  <div class="menu-item" data-menu>
+    <div class="menu-label">任务</div>
+    <div class="dropdown">
+      <div class="entry" data-act="new">新建任务 <span class="shortcut">Ctrl+N</span></div>
+      <div class="entry" data-act="addGroup">新建分组</div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu>
+    <div class="menu-label">帮助</div>
+    <div class="dropdown">
+      <div class="entry" data-act="settings">设置 <span class="shortcut">Ctrl+,</span></div>
+      <div class="entry" data-act="about">关于 Sylvie TaskList</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 侧边栏 -->
+  <div class="sidebar">
+    <div class="side-label">分 组</div>
+    <div id="groupList"></div>
+    <div class="side-add" id="addGroupBtn" title="新建分组">+ 新建分组</div>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="搜索任务… (Ctrl+F)" title="按标题和备注搜索任务 (Ctrl+F)">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" title="显示全部任务">全部</button>
+        <button class="filter-tab" data-filter="active" title="只显示未完成的任务">进行中</button>
+        <button class="filter-tab" data-filter="done" title="只显示已完成的任务">已完成</button>
+      </div>
+      <select id="sortSel" title="任务排序方式">
+        <option value="custom">自定义排序</option>
+        <option value="priority">按优先级</option>
+        <option value="due">按截止日期</option>
+        <option value="created">按创建时间</option>
+      </select>
+      <button class="btn primary" id="newBtn" title="新建任务 (Ctrl+N)">+ 新建任务</button>
+    </div>
+    <div class="list-area">
+      <div class="task-list" id="taskList"></div>
+      <div class="empty" id="emptyState" style="display:none">
+        <div class="big">📋</div>
+        <div id="emptyText">暂无任务，点击「新建任务」开始吧</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部状态栏 -->
+<div class="statusbar">
+  <span id="stCounts"></span>
+  <span class="spacer"></span>
+  <span id="stMcp" class="mcp-indicator" style="display:none" title="MCP Server 运行中（设置 → MCP 服务中可开关）">
+    <span class="mcp-dot"></span>MCP 已开启
+  </span>
+  <span>v1.0.0</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /window -->
+
+<div class="desktop-hint">原型演示：实际应用中此窗口由 Electron 创建，可拖动 / 缩放 / 最小化到托盘</div>
+
+<!-- 任务弹窗 -->
+<div class="mask" id="taskMask">
+  <div class="dialog wide">
+    <div class="dialog-head">
+      <h3 id="dialogTitle">新建任务</h3>
+      <button class="dlg-close" id="dlgClose" title="关闭 (Esc)">✕</button>
+    </div>
+    <label>标题<span class="req">*</span></label>
+    <input type="text" id="fTitle" class="input-lg" placeholder="要做什么？">
+    <label>备注</label>
+    <textarea id="fNote" rows="3" placeholder="补充说明（可选）"></textarea>
+    <div class="row">
+      <div>
+        <label>分组</label>
+        <select id="fGroup"></select>
+      </div>
+      <div>
+        <label>优先级</label>
+        <select id="fPriority">
+          <option value="high">高</option>
+          <option value="mid" selected>中</option>
+          <option value="low">低</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>截止时间 <span style="font-weight:400">（可选）</span></label>
+        <input type="datetime-local" id="fDue" title="可选，精确到分钟">
+      </div>
+    </div>
+    <div id="taskTimeInfo" class="task-time-info" style="display:none"></div>
+    <div class="foot">
+      <button class="btn" id="cancelBtn" title="放弃编辑">取消</button>
+      <button class="btn primary" id="saveBtn" title="保存任务">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="mask" id="confirmMask">
+  <div class="dialog">
+    <h3 id="confirmTitle">确认删除</h3>
+    <p id="confirmText" style="color:var(--text-sub);font-size:12px"></p>
+    <div class="foot">
+      <button class="btn" id="confirmNo" title="不执行删除">取消</button>
+      <button class="btn danger" id="confirmYes" title="确认删除，不可恢复">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 输入弹窗 -->
+<div class="mask" id="inputMask">
+  <div class="dialog">
+    <h3 id="inputTitle">输入</h3>
+    <input type="text" id="inputField">
+    <div class="color-row" id="colorRow" style="display:none">
+      <label>颜色</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="foot">
+      <button class="btn" id="inputNo">取消</button>
+      <button class="btn primary" id="inputYes">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 设置界面（VSCode 风格） -->
+<div class="mask" id="settingsMask">
+  <div class="settings-panel">
+    <div class="settings-head">
+      <h3>设置</h3>
+      <input type="text" id="setSearch" placeholder="搜索设置…">
+      <button class="settings-close" title="关闭 (Esc)" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-nav" id="settingsNav"></div>
+      <div class="settings-content" id="settingsContent"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none">
+<input type="file" id="settingsFileInput" accept=".json" style="display:none">
+
+<script>
+// ---------- 数据层 ----------
+const STORE_KEY = 'sylvie-tasklist-proto';
+let state = { groups: ['工作', '生活', '学习'], groupColors: {}, tasks: [], seq: 1 };
+// 分组颜色：name → hex（如 '#2563eb'），未设置颜色的分组显示中性圆点
+let ui = { group: '全部', filter: 'all', sort: 'priority', search: '', editingId: null };
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) state = JSON.parse(raw);
+    // 旧数据兼容：无 groupColors 字段时补空对象
+    if (!state.groupColors) state.groupColors = {};
+    // 旧数据迁移：created → createdAt、due → dueAt（时间字段命名统一带 At 后缀）
+    (state.tasks || []).forEach(t => {
+      if ('created' in t) { t.createdAt = t.created; delete t.created; }
+      if ('due' in t) { t.dueAt = t.due; delete t.due; }
+      // 日期型截止时间补充为当天 09:00（可在编辑中调整）
+      if (t.dueAt && !t.dueAt.includes('T')) t.dueAt = t.dueAt + 'T09:00';
+    });
+  } catch (e) { /* 数据损坏时降级为空数据 */ }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// ---------- 工具 ----------
+const $ = (s) => document.querySelector(s);
+const P_TEXT = { high: '高', mid: '中', low: '低' };
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function fmtDue(d) {
+  if (!d) return null;
+  const hasTime = d.includes('T');
+  const due = new Date(d);
+  const now = new Date();
+  const startOfDay = (x) => { const t = new Date(x); t.setHours(0, 0, 0, 0); return t; };
+  const diff = Math.round((startOfDay(due) - startOfDay(now)) / 86400000);
+  const p = (n) => String(n).padStart(2, '0');
+  if (hasTime) {
+    const text = `${due.getMonth() + 1}/${due.getDate()} ${p(due.getHours())}:${p(due.getMinutes())}`;
+    return { text, overdue: due.getTime() < now.getTime(), hasTime };
+  }
+  let text = `${due.getMonth() + 1}/${due.getDate()}`;
+  if (diff === 0) text = '今天截止';
+  else if (diff === 1) text = '明天截止';
+  return { text: diff < 0 ? `已逾期 ${-diff} 天` : text, overdue: diff < 0, hasTime };
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// 分组颜色（未设置时返回 null，界面用中性色兜底）
+const GROUP_PALETTE = ['#e11d48', '#f59e0b', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777', '#64748b'];
+function groupColor(g) { return (state.groupColors && state.groupColors[g]) || null; }
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+function fmtDateTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// ---------- 拖拽排序 ----------
+let dragPayload = null; // { type: 'task'|'group', id/name }
+function clearDropTargets() {
+  document.querySelectorAll('.drop-target').forEach(x => x.classList.remove('drop-target'));
+}
+// 拖拽产生手动顺序时，自动切换到自定义排序模式
+function switchToCustom() {
+  if (ui.sort !== 'custom') {
+    ui.sort = 'custom';
+    $('#sortSel').value = 'custom';
+    toast('已切换为「自定义排序」');
+  }
+}
+// 原型中的窗口控制按钮占位（实际由 Electron 主进程 ipc 实现）
+function mockWin(action) {
+  if (action === '关闭') {
+    toast(settings['window.closeAction'] === 'tray' ? '已最小化到系统托盘（原型演示）' : '应用已退出（原型演示）');
+    return;
+  }
+  toast(`原型演示：「${action}」由 Electron 窗口控制实现`);
+}
+
+// ---------- 渲染 ----------
+function render() { renderSidebar(); renderTasks(); renderStatus(); }
+
+// 统一取数：某分组在当前筛选/搜索条件下的任务列表（侧边栏计数、状态栏统计、右侧列表共用同一口径）
+function visibleTasks(g) {
+  let list = g === '全部' ? [...state.tasks] : state.tasks.filter(t => t.group === g);
+  if (ui.filter === 'active') list = list.filter(t => !t.done);
+  if (ui.filter === 'done') list = list.filter(t => t.done);
+  if (ui.search) {
+    const kw = ui.search.toLowerCase();
+    list = list.filter(t => t.title.toLowerCase().includes(kw) || (t.note || '').toLowerCase().includes(kw));
+  }
+  return list;
+}
+function groupCount(g) { return visibleTasks(g).length; }
+
+function renderSidebar() {
+  const el = $('#groupList');
+  el.innerHTML = '';
+  // 存在归入"未分组"的任务时，侧边栏显示"未分组"入口，避免任务"消失"
+  const extra = state.tasks.some(t => t.group === '未分组') ? ['未分组'] : [];
+  for (const g of ['全部', ...state.groups, ...extra]) {
+    const count = groupCount(g);
+    const div = document.createElement('div');
+    div.className = 'side-item' + (ui.group === g ? ' active' : '');
+    // 分组颜色圆点（自定义分组显示，全部/未分组除外）
+    if (g !== '全部' && g !== '未分组') {
+      const dot = document.createElement('span');
+      dot.className = 'dot' + (groupColor(g) ? '' : ' dot-default');
+      if (groupColor(g)) dot.style.background = groupColor(g);
+      dot.title = groupColor(g) ? `分组颜色：${groupColor(g)}` : '默认颜色（创建分组时可选择颜色）';
+      div.appendChild(dot);
+    }
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = g;
+    name.title = g;
+    div.appendChild(name);
+    // 分组拖拽排序 + 接收任务拖入（移动分组）
+    div.draggable = g !== '全部' && g !== '未分组';
+    div.ondragstart = (e) => {
+      dragPayload = { type: 'group', name: g };
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    };
+    div.ondragend = () => { dragPayload = null; div.classList.remove('dragging'); clearDropTargets(); };
+    div.ondragover = (e) => {
+      if (!dragPayload) return;
+      if (dragPayload.type === 'task' && g === '全部') return;
+      e.preventDefault();
+      div.classList.add('drop-target');
+    };
+    div.ondragleave = () => div.classList.remove('drop-target');
+    div.ondrop = (e) => {
+      e.preventDefault();
+      div.classList.remove('drop-target');
+      if (!dragPayload) return;
+      if (dragPayload.type === 'task') {
+        // 任务拖到分组上 = 移动分组
+        const t = state.tasks.find(x => x.id === dragPayload.id);
+        if (t && t.group !== g) {
+          t.group = g;
+          save(); render();
+          toast(`已移动到「${g}」`);
+        }
+      } else if (dragPayload.type === 'group' && dragPayload.name !== g) {
+        // 分组拖到分组上 = 调整分组顺序
+        const from = state.groups.indexOf(dragPayload.name);
+        const to = state.groups.indexOf(g);
+        if (from > -1 && to > -1) {
+          state.groups.splice(to, 0, state.groups.splice(from, 1)[0]);
+          save(); render();
+        }
+      }
+    };
+    if (g !== '全部' && g !== '未分组') {
+      const edit = document.createElement('button');
+      edit.className = 'edit-group';
+      edit.textContent = '✎';
+      edit.title = '编辑分组（重命名 / 修改颜色）';
+      edit.onclick = (e) => { e.stopPropagation(); editGroup(g); };
+      div.appendChild(edit);
+      const del = document.createElement('button');
+      del.className = 'del-group';
+      del.textContent = '×';
+      del.title = '删除分组（任务归入"未分组"）';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        askConfirm('删除分组', `确定删除分组「${g}」吗？该分组下的任务会保留并归入"未分组"。`, () => {
+          state.tasks.forEach(t => { if (t.group === g) t.group = '未分组'; });
+          state.groups = state.groups.filter(x => x !== g);
+          if (state.groupColors) delete state.groupColors[g]; // 同步清理分组颜色
+          if (ui.group === g) ui.group = '全部';
+          save(); render();
+        });
+      };
+      div.appendChild(del);
+    }
+    const c = document.createElement('span');
+    c.className = 'count';
+    c.textContent = count;
+    c.title = `当前筛选下的任务数：${count}`;
+    div.appendChild(c);
+    div.title = `查看「${g}」分组`;
+    div.onclick = () => { ui.group = g; render(); };
+    el.appendChild(div);
+  }
+}
+
+let flashTaskRequest = null; // 待播放闪烁反馈的任务 { id, done }（勾选完成/取消时设置，渲染后消费）
+function renderTasks() {
+  const list = visibleTasks(ui.group);
+  const PR = { high: 0, mid: 1, low: 2 };
+  const ord = (t) => t.order ?? t.createdAt;
+  list.sort((a, b) => {
+    // 自定义模式：完全按手动顺序（不强制已完成沉底，所见即所排）
+    if (ui.sort === 'custom') return ord(a) - ord(b);
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (ui.sort === 'priority') return PR[a.priority] - PR[b.priority];
+    if (ui.sort === 'due') return (a.dueAt || '9999').localeCompare(b.dueAt || '9999');
+    return a.createdAt - b.createdAt;
+  });
+
+  const wrap = $('#taskList');
+  // FLIP 动画准备：记录重建前每个任务卡片的纵向位置
+  const oldTops = new Map();
+  wrap.querySelectorAll('.task').forEach(el => oldTops.set(el.dataset.taskId, el.getBoundingClientRect().top));
+  wrap.innerHTML = '';
+  const empty = $('#emptyState');
+  if (!list.length) {
+    empty.style.display = 'block';
+    $('#emptyText').textContent = ui.search ? '没有匹配的任务，换个关键词试试'
+      : ui.filter === 'done' ? '还没有完成的任务'
+      : ui.filter === 'active' ? '所有任务都已完成 🎉'
+      : '暂无任务，点击「新建任务」开始吧';
+    return;
+  }
+  empty.style.display = 'none';
+
+  for (const t of list) {
+    const div = document.createElement('div');
+    div.className = 'task' + (t.done ? ' done' : '');
+    div.dataset.taskId = t.id; // FLIP 动画与闪烁反馈按 id 定位卡片
+    // 拖拽排序
+    div.draggable = true;
+    div.ondragstart = (e) => {
+      dragPayload = { type: 'task', id: t.id };
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    };
+    div.ondragend = () => { dragPayload = null; div.classList.remove('dragging'); clearDropTargets(); };
+    div.ondragover = (e) => {
+      if (!dragPayload || dragPayload.type !== 'task' || dragPayload.id === t.id) return;
+      e.preventDefault();
+      div.classList.add('drop-target');
+    };
+    div.ondragleave = () => div.classList.remove('drop-target');
+    div.ondrop = (e) => {
+      e.preventDefault();
+      div.classList.remove('drop-target');
+      if (!dragPayload || dragPayload.type !== 'task' || dragPayload.id === t.id) return;
+      const me = state.tasks.find(x => x.id === dragPayload.id);
+      if (!me) return;
+      // 按落点在目标的上/下半区决定插入到目标之前或之后
+      const rect = div.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      const tOrder = ord(t);
+      let newOrder;
+      if (before) {
+        const prev = state.tasks
+          .filter(x => x.id !== me.id && ord(x) < tOrder)
+          .sort((a, b) => ord(b) - ord(a))[0];
+        newOrder = prev ? (ord(prev) + tOrder) / 2 : tOrder - 1;
+      } else {
+        const next = state.tasks
+          .filter(x => x.id !== me.id && ord(x) > tOrder)
+          .sort((a, b) => ord(a) - ord(b))[0];
+        newOrder = next ? (tOrder + ord(next)) / 2 : tOrder + 1;
+      }
+      me.order = newOrder;
+      // 规则排序下拖拽 → 自动切换为自定义排序
+      switchToCustom();
+      save(); render();
+    };
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = t.done;
+    cb.title = t.done ? '标记为未完成' : '标记为已完成';
+    cb.onchange = () => {
+      t.done = cb.checked;
+      // 记录 / 清除完成时间
+      t.completedAt = cb.checked ? Date.now() : null;
+      flashTaskRequest = { id: t.id, done: cb.checked, title: t.title }; // 渲染后播放卡片闪烁反馈
+      save(); render();
+    };
+
+    const body = document.createElement('div');
+    body.className = 'task-body';
+    const gc = groupColor(t.group);
+    // 分组 chip 跟随分组颜色软着色；无颜色时中性灰
+    const groupChip = gc
+      ? `<span class="chip" style="background:${gc}1c;color:${gc}">${escapeHtml(t.group)}</span>`
+      : `<span class="chip">${escapeHtml(t.group)}</span>`;
+    const meta = [
+      groupChip,
+      `<span class="chip p-${t.priority}">${P_TEXT[t.priority]}优先</span>`,
+      `<span class="chip ghost" title="创建时间">🕐 ${fmtDateTime(t.createdAt)}</span>`,
+    ];
+    if (t.dueAt && !t.done) {
+      const d = fmtDue(t.dueAt);
+      const icon = d.hasTime ? '⏰' : '📅';
+      const dueTip = `截止时间：${t.dueAt.replace('T', ' ')}`;
+      if (d.overdue) {
+        // 逾期标记受"逾期任务高亮"设置控制，关闭时仍显示普通截止时间
+        meta.push(settings['task.overdueHighlight']
+          ? `<span class="chip overdue" title="${dueTip}">⚠ ${d.text}</span>`
+          : `<span class="chip" title="${dueTip}">${icon} ${d.text}</span>`);
+      }
+      else meta.push(`<span class="chip" title="${dueTip}">${icon} ${d.text}</span>`);
+    }
+    if (t.done) {
+      meta.push(`<span class="chip done-chip" title="完成时间">✓ ${t.completedAt ? fmtDateTime(t.completedAt) + ' 完成' : '已完成'}</span>`);
+    }
+    body.innerHTML = `<div class="task-title">${escapeHtml(t.title)}</div>`
+      + (t.note ? `<div class="task-note">${escapeHtml(t.note)}</div>` : '')
+      + `<div class="task-meta">${meta.join('')}</div>`;
+    // 点击条目主体 = 查看详情（编辑弹窗）；复选框和操作按钮各自独立，不受影响
+    body.onclick = () => openTaskDialog(t);
+
+    const acts = document.createElement('div');
+    acts.className = 'task-actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'icon-btn'; editBtn.textContent = '✏️'; editBtn.title = '编辑';
+    editBtn.onclick = () => openTaskDialog(t);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn del'; delBtn.textContent = '🗑️'; delBtn.title = '删除';
+    delBtn.onclick = () => askConfirm('删除任务', `确定删除任务「${t.title}」吗？`, () => {
+      state.tasks = state.tasks.filter(x => x.id !== t.id);
+      save(); render(); toast('已删除');
+    });
+    acts.append(editBtn, delBtn);
+    div.append(cb, body, acts);
+    wrap.appendChild(div);
+  }
+
+  // FLIP 动画：位置变化的任务从旧位置平滑滑到新位置（完成沉底不再生硬）
+  requestAnimationFrame(() => {
+    for (const el of wrap.querySelectorAll('.task')) {
+      const oldTop = oldTops.get(el.dataset.taskId);
+      if (oldTop == null) continue;
+      const dy = oldTop - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 2) continue;
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform .28s cubic-bezier(.2, .8, .3, 1)';
+        el.style.transform = '';
+        el.addEventListener('transitionend', () => {
+          el.style.transition = ''; el.style.transform = '';
+        }, { once: true });
+      });
+    }
+  });
+
+  // 勾选/取消完成的即时反馈：卡片闪烁（绿=完成，蓝=取消）+ toast 提示（所有筛选视图统一）
+  if (flashTaskRequest) {
+    const el = wrap.querySelector(`.task[data-task-id="${flashTaskRequest.id}"]`);
+    if (el) el.classList.add(flashTaskRequest.done ? 'flash-done' : 'flash-undone');
+    toast(flashTaskRequest.done ? `已完成「${flashTaskRequest.title}」` : `已恢复「${flashTaskRequest.title}」为进行中`);
+    flashTaskRequest = null;
+  }
+}
+
+function renderStatus() {
+  // 统计口径与右侧列表完全一致（当前分组 + 筛选 + 搜索）
+  const list = visibleTasks(ui.group);
+  const total = list.length;
+  const active = list.filter(t => !t.done).length;
+  const scope = ui.group === '全部' ? '全部任务' : `分组「${ui.group}」`;
+  $('#stCounts').textContent = `${scope}：共 ${total} 个任务，${active} 个进行中，${total - active} 个已完成`;
+}
+
+// ---------- 任务弹窗 ----------
+function openTaskDialog(task) {
+  ui.editingId = task ? task.id : null;
+  $('#dialogTitle').textContent = task ? '编辑任务' : '新建任务';
+  $('#fTitle').value = task ? task.title : '';
+  $('#fNote').value = task ? (task.note || '') : '';
+  $('#fPriority').value = task ? task.priority : settings['task.defaultPriority'];
+  $('#fDue').value = task ? (task.dueAt || '') : '';
+  const sel = $('#fGroup');
+  sel.innerHTML = '';
+  const opts = [...state.groups, '未分组']; // 未分组始终可选，允许任务显式归入未分组
+  for (const g of opts) {
+    const o = document.createElement('option');
+    o.value = g; o.textContent = g;
+    if (task && task.group === g) o.selected = true;
+    if (!task && ui.group !== '全部' && ui.group === g) o.selected = true;
+    sel.appendChild(o);
+  }
+  if (!sel.value) {
+    if (opts.includes(settings['task.defaultGroup'])) sel.value = settings['task.defaultGroup'];
+    else if (opts.length) sel.selectedIndex = 0;
+  }
+  // 编辑已有任务时展示自动记录的时间信息
+  const info = $('#taskTimeInfo');
+  if (task) {
+    const parts = [`创建时间：${fmtDateTime(task.createdAt)}`];
+    if (task.completedAt) parts.push(`完成时间：${fmtDateTime(task.completedAt)}`);
+    info.textContent = parts.join('　·　');
+    info.style.display = 'block';
+  } else {
+    info.style.display = 'none';
+  }
+  $('#taskMask').classList.add('show');
+  setTimeout(() => $('#fTitle').focus(), 50);
+}
+$('#saveBtn').onclick = () => {
+  const title = $('#fTitle').value.trim();
+  if (!title) { toast('请输入任务标题'); $('#fTitle').focus(); return; }
+  const data = {
+    title,
+    note: $('#fNote').value.trim(),
+    group: $('#fGroup').value || '未分组',
+    priority: $('#fPriority').value,
+    dueAt: $('#fDue').value || '',
+  };
+  if (ui.editingId) {
+    Object.assign(state.tasks.find(x => x.id === ui.editingId), data);
+    toast('已保存');
+  } else {
+    // 自定义排序下新建任务置顶（取最小 order 再减 1）
+    const minOrder = state.tasks.length ? Math.min(...state.tasks.map(x => x.order ?? x.createdAt)) : 1;
+    state.tasks.push({ id: state.seq++, createdAt: Date.now(), done: false, order: minOrder - 1, ...data });
+    toast('已创建');
+  }
+  save();
+  $('#taskMask').classList.remove('show');
+  render();
+};
+$('#cancelBtn').onclick = () => $('#taskMask').classList.remove('show');
+$('#dlgClose').onclick = () => $('#taskMask').classList.remove('show');
+$('#newBtn').onclick = () => openTaskDialog(null);
+
+// ---------- 删除确认 ----------
+let confirmCb = null;
+function askConfirm(title, text, cb) {
+  $('#confirmTitle').textContent = title;
+  $('#confirmText').textContent = text;
+  confirmCb = cb;
+  $('#confirmMask').classList.add('show');
+}
+$('#confirmYes').onclick = () => { $('#confirmMask').classList.remove('show'); confirmCb && confirmCb(); };
+$('#confirmNo').onclick = () => $('#confirmMask').classList.remove('show');
+
+// ---------- 输入弹窗 ----------
+let inputCb = null;
+let inputColor = null;         // 色板当前选中颜色（null = 默认）
+let inputColorTouched = false; // 用户是否点过色板（区分"未动"与"主动选默认"）
+function askInput(title, placeholder, cb, opts = {}) {
+  $('#inputTitle').textContent = title;
+  const f = $('#inputField');
+  f.value = opts.initialName || '';
+  f.placeholder = placeholder || '';
+  inputCb = cb;
+  inputColor = opts.initialColor !== undefined ? opts.initialColor : null;
+  inputColorTouched = false;
+  // 可选色板（创建/编辑分组时选择颜色）
+  const row = $('#colorRow');
+  row.style.display = opts.withColor ? 'block' : 'none';
+  if (opts.withColor) {
+    const sw = $('#swatches');
+    sw.innerHTML = '';
+    // 第一个选项是"默认颜色"（中性灰点，不设色值）
+    const mk = (color, label) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch' + (color ? '' : ' swatch-default')
+        + ((opts.initialColor !== undefined && color === inputColor)
+          || (opts.initialColor === undefined && color === null && inputColor === null) ? ' selected' : '');
+      if (color) b.style.background = color;
+      b.title = label;
+      b.onclick = () => {
+        inputColor = color;
+        inputColorTouched = true;
+        sw.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+      };
+      return b;
+    };
+    sw.appendChild(mk(null, '默认颜色（中性灰点）'));
+    GROUP_PALETTE.forEach(c => sw.appendChild(mk(c, c)));
+  }
+  $('#inputMask').classList.add('show');
+  setTimeout(() => { f.focus(); f.select(); }, 50);
+}
+function submitInput() {
+  const v = $('#inputField').value.trim();
+  if (!v) { toast('内容不能为空'); $('#inputField').focus(); return; }
+  $('#inputMask').classList.remove('show');
+  inputCb && inputCb(v, inputColor, inputColorTouched);
+}
+$('#inputYes').onclick = submitInput;
+$('#inputNo').onclick = () => $('#inputMask').classList.remove('show');
+$('#inputField').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); submitInput(); }
+});
+
+// ---------- 分组 ----------
+function addGroup() {
+  // 创建分组时可选颜色（色板中点选，可不选=默认灰点）
+  askInput('新建分组', '输入分组名称', (n, color) => {
+    if (state.groups.includes(n) || n === '全部' || n === '未分组') { toast('分组已存在'); return; }
+    state.groups.push(n);
+    if (color) state.groupColors[n] = color;
+    save(); render();
+    toast(color ? '分组已创建' : '分组已创建（默认颜色）');
+  }, { withColor: true });
+}
+
+// 编辑分组：重命名（联动任务/当前视图/颜色记录）+ 修改颜色
+function editGroup(g) {
+  askInput('编辑分组', '输入分组名称', (newName, color, colorTouched) => {
+    if (newName !== g && (state.groups.includes(newName) || newName === '全部' || newName === '未分组')) {
+      toast('分组名称已存在'); return;
+    }
+    if (newName !== g) {
+      state.tasks.forEach(t => { if (t.group === g) t.group = newName; });
+      state.groups = state.groups.map(x => (x === g ? newName : x));
+      if (ui.group === g) ui.group = newName;
+      // 未动色板时颜色跟随重命名迁移
+      if (!colorTouched && state.groupColors && state.groupColors[g] !== undefined) {
+        state.groupColors[newName] = state.groupColors[g];
+        delete state.groupColors[g];
+      }
+    }
+    if (colorTouched) {
+      if (color) state.groupColors[newName] = color; // 选了色值 → 设置
+      else delete state.groupColors[newName];        // 选了"默认" → 移除颜色
+    }
+    save(); render();
+    toast('分组已更新');
+  }, { withColor: true, initialName: g, initialColor: groupColor(g) || null });
+}
+$('#addGroupBtn').onclick = addGroup;
+
+// ---------- 菜单栏 ----------
+document.querySelectorAll('[data-menu]').forEach(mi => {
+  mi.querySelector('.menu-label').onclick = (e) => {
+    e.stopPropagation();
+    const wasOpen = mi.classList.contains('open');
+    closeMenus();
+    if (!wasOpen) mi.classList.add('open');
+  };
+  mi.querySelectorAll('.entry').forEach(entry => {
+    entry.onclick = () => {
+      closeMenus();
+      handleMenu(entry.dataset.act);
+    };
+  });
+});
+function closeMenus() { document.querySelectorAll('[data-menu]').forEach(x => x.classList.remove('open')); }
+document.addEventListener('click', closeMenus);
+
+function handleMenu(act) {
+  if (act === 'new') return openTaskDialog(null);
+  if (act === 'addGroup') return addGroup();
+  if (act === 'settings') return openSettings();
+  if (act === 'about') return askConfirm('关于', 'Sylvie TaskList v1.0.0 原型\nReact + Electron Forge + Vite\n本地任务清单桌面应用（仅 Windows）', () => {});
+}
+
+// ---------- 工具栏筛选 / 排序 / 搜索 ----------
+function setFilter(f) {
+  document.querySelectorAll('.filter-tab').forEach(x => x.classList.toggle('active', x.dataset.filter === f));
+  ui.filter = f;
+  render();
+}
+document.querySelectorAll('.filter-tab').forEach(b => b.onclick = () => setFilter(b.dataset.filter));
+$('#sortSel').onchange = (e) => { ui.sort = e.target.value; render(); };
+$('#search').oninput = (e) => { ui.search = e.target.value.trim(); render(); };
+
+// ---------- 设置与主题（VSCode 风格设置界面） ----------
+const SETTINGS_KEY = 'sylvie-tasklist-settings';
+const DEFAULT_SETTINGS = {
+  // 扁平结构 + 点分命名空间（与 VSCode settings.json 风格一致）
+  'appearance.theme': 'light',
+  'appearance.fontSize': 'standard',
+  'window.closeAction': 'tray',
+  'task.defaultGroup': '工作',
+  'task.defaultPriority': 'mid',
+  'task.overdueHighlight': true,
+  'mcp.serverEnabled': false,
+};
+let settings = { ...DEFAULT_SETTINGS };
+try {
+  const s = localStorage.getItem(SETTINGS_KEY);
+  if (s) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(s) };
+} catch (e) { /* 设置损坏时使用默认值 */ }
+
+function isDark() {
+  if (settings['appearance.theme'] === 'dark') return true;
+  if (settings['appearance.theme'] === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function applyTheme() {
+  document.documentElement.classList.toggle('dark', isDark());
+}
+window.matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', () => { if (settings['appearance.theme'] === 'system') applyTheme(); });
+
+function applySettings() {
+  applyTheme();
+  const zoom = { small: 0.9, standard: 1, large: 1.1 }[settings['appearance.fontSize']] || 1;
+  document.querySelector('.window').style.zoom = zoom;
+  // 状态栏 MCP 指示（原型中随设置即时显示，实际应用中反映 server 运行状态）
+  $('#stMcp').style.display = settings['mcp.serverEnabled'] ? 'inline-flex' : 'none';
+}
+
+function updateSetting(key, val) {
+  settings[key] = val;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  applySettings();
+  render(); // 任务相关设置立即生效
+  toggleSyncers.forEach(f => f()); // 刷新开关旁的状态文字
+  if (key === 'mcp.serverEnabled') {
+    toast(val ? 'MCP Server 已开启' : 'MCP Server 已关闭');
+  }
+}
+
+// ---- 设置项定义 ----
+let toggleSyncers = []; // 开关状态文字的刷新回调（渲染设置页时重建）
+const SET_CATS = [
+  { id: 'general', name: '通用' },
+  { id: 'appearance', name: '外观' },
+  { id: 'task', name: '任务' },
+  { id: 'mcp', name: 'MCP 服务' },
+  { id: 'data', name: '数据与备份' },
+  { id: 'json', name: '配置文件' },
+  { id: 'hotkeys', name: '快捷键' },
+];
+const SET_ITEMS = [
+  { cat: 'general', key: 'window.closeAction', title: '点击关闭按钮时', desc: '点击标题栏 ✕ 按钮时最小化到系统托盘，或直接退出应用', type: 'select',
+    options: [['tray', '最小化到系统托盘'], ['quit', '退出应用']] },
+
+  { cat: 'appearance', key: 'appearance.theme', title: '主题', desc: '控制应用界面的配色方案，"跟随系统"将自动匹配 Windows 的深浅色模式', type: 'select',
+    options: [['light', '亮色'], ['dark', '暗色'], ['system', '跟随系统']] },
+  { cat: 'appearance', key: 'appearance.fontSize', title: '界面字号', desc: '调整整个应用界面的显示大小，重启后仍会保留', type: 'select',
+    options: [['small', '小 (90%)'], ['standard', '标准 (100%)'], ['large', '大 (110%)']] },
+
+  { cat: 'task', key: 'task.defaultGroup', title: '默认分组', desc: '新建任务时默认选择的分组（跟随当前侧边栏选中分组时优先使用当前分组）', type: 'select', dynamic: 'group' },
+  { cat: 'task', key: 'task.defaultPriority', title: '默认优先级', desc: '新建任务时默认选择的优先级', type: 'select',
+    options: [['high', '高'], ['mid', '中'], ['low', '低']] },
+  { cat: 'task', key: 'task.overdueHighlight', title: '逾期任务高亮', desc: '超过截止时间的未完成任务显示红色"已逾期"标记', type: 'checkbox' },
+
+  { cat: 'mcp', key: 'mcp.serverEnabled', title: '启动 MCP Server', desc: '在本机启动 MCP（Model Context Protocol）服务器，将任务数据通过标准协议暴露给 AI 助手等外部客户端，可查询任务、创建任务等。切换开关立即生效，无需重启', type: 'switch' },
+];
+
+let setCat = 'appearance';
+let setSearchKw = '';
+
+function openSettings() {
+  $('#settingsMask').classList.add('show');
+  setSearchKw = '';
+  $('#setSearch').value = '';
+  renderSettings();
+  setTimeout(() => $('#setSearch').focus(), 50);
+}
+
+function renderSettings() {
+  // 左侧导航
+  const nav = $('#settingsNav');
+  nav.innerHTML = '';
+  const kw = setSearchKw.toLowerCase();
+  for (const c of SET_CATS) {
+    const n = kw
+      ? SET_ITEMS.filter(i => i.cat === c.id && matchItem(i, kw)).length
+      : SET_ITEMS.filter(i => i.cat === c.id).length;
+    if (kw && !n) continue;
+    const div = document.createElement('div');
+    div.className = 'nav-item' + (!kw && setCat === c.id ? ' active' : '');
+    div.textContent = c.name;
+    if (kw) {
+      const s = document.createElement('span');
+      s.className = 'n-count';
+      s.textContent = n;
+      div.appendChild(s);
+    }
+    div.onclick = () => { setCat = c.id; setSearchKw = ''; $('#setSearch').value = ''; renderSettings(); };
+    nav.appendChild(div);
+  }
+  if (kw) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size:11px;color:var(--text-sub);padding:8px 10px;';
+    hint.textContent = '搜索结果';
+    nav.prepend(hint);
+  }
+
+  // 右侧内容
+  const content = $('#settingsContent');
+  content.innerHTML = '';
+  const items = kw
+    ? SET_ITEMS.filter(i => matchItem(i, kw))
+    : SET_ITEMS.filter(i => i.cat === setCat);
+  const catName = (id) => (SET_CATS.find(c => c.id === id) || {}).name || '';
+  toggleSyncers = [];
+
+  if (setCat === 'hotkeys' && !kw) {
+    const h = document.createElement('h4');
+    h.textContent = '键盘快捷键';
+    content.appendChild(h);
+    const list = [
+      ['新建任务', 'Ctrl + N'],
+      ['聚焦搜索框', 'Ctrl + F'],
+      ['打开设置', 'Ctrl + ,'],
+      ['关闭弹窗 / 菜单', 'Esc'],
+    ];
+    for (const [name, keys] of list) {
+      const r = document.createElement('div');
+      r.className = 'hotkey-row';
+      r.innerHTML = `<span>${name}</span><kbd>${keys}</kbd>`;
+      content.appendChild(r);
+    }
+    return;
+  }
+
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    const info = document.createElement('div');
+    info.className = 'set-info';
+    const titleHtml = kw
+      ? `${escapeHtml(item.title)}<span class="cat-tag">${catName(item.cat)}</span>`
+      : escapeHtml(item.title);
+    info.innerHTML = `<div class="set-title">${titleHtml}</div><div class="set-desc">${escapeHtml(item.desc)}</div>`;
+    const ctrl = document.createElement('div');
+    ctrl.className = 'set-ctrl';
+
+    if (item.type === 'select') {
+      const sel = document.createElement('select');
+      const opts = item.dynamic === 'group'
+        ? [...state.groups, '未分组']   // 默认分组候选始终包含"未分组"
+        : item.options.map(o => o[0]);
+      const labels = item.dynamic === 'group'
+        ? opts
+        : item.options.map(o => o[1]);
+      opts.forEach((v, i) => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = labels[i];
+        sel.appendChild(o);
+      });
+      sel.value = settings[item.key];
+      sel.onchange = () => updateSetting(item.key, sel.value);
+      ctrl.appendChild(sel);
+    } else if (item.type === 'checkbox') {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!settings[item.key];
+      cb.onchange = () => updateSetting(item.key, cb.checked);
+      ctrl.appendChild(cb);
+    } else if (item.type === 'switch') {
+      // 滑动切换开关（视觉上明确"开/关"，比勾选框更贴近桌面软件习惯）
+      const wrap = document.createElement('label');
+      wrap.className = 'toggle';
+      wrap.title = item.desc;
+      wrap.innerHTML = `
+        <input type="checkbox" ${settings[item.key] ? 'checked' : ''}>
+        <span class="track"></span>
+        <span class="thumb"></span>`;
+      wrap.querySelector('input').onchange = (e) => updateSetting(item.key, e.target.checked);
+      ctrl.appendChild(wrap);
+      const state = document.createElement('span');
+      state.className = 'state-label';
+      state.textContent = settings[item.key] ? '已开启' : '已关闭';
+      ctrl.appendChild(state);
+      wrap._onSync = () => { state.textContent = settings[item.key] ? '已开启' : '已关闭'; };
+      toggleSyncers.push(wrap._onSync);
+    }
+    row.append(info, ctrl);
+    content.appendChild(row);
+  }
+
+  // 数据与备份的附加操作
+  if (setCat === 'data' && !kw) {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+      <div class="set-info">
+        <div class="set-title">本地文件位置</div>
+        <div class="set-desc">任务数据与应用设置分别存储，均为 JSON 格式，可直接查看</div>
+        <div class="setting-path" style="margin-top:8px">任务数据&nbsp;&nbsp;C:\\Users\\&lt;用户&gt;\\AppData\\Roaming\\sylvie-tasklist\\tasks.json</div>
+        <div class="setting-path" style="margin-top:6px">应用设置&nbsp;&nbsp;C:\\Users\\&lt;用户&gt;\\AppData\\Roaming\\sylvie-tasklist\\settings.json</div>
+      </div>
+      <div class="set-ctrl" style="flex-direction:column;align-items:stretch;gap:6px">
+        <button class="mini-btn" id="sExport" title="将任务数据导出为 tasks.json 文件">导出备份</button>
+        <button class="mini-btn" id="sImport" title="从备份文件导入任务数据（覆盖当前任务）">导入备份</button>
+        <button class="mini-btn" id="sOpenFolder" title="在资源管理器中打开数据文件夹">打开数据文件夹</button>
+      </div>`;
+    content.appendChild(row);
+    row.querySelector('#sExport').onclick = exportData;
+    row.querySelector('#sImport').onclick = () => $('#fileInput').click();
+    row.querySelector('#sOpenFolder').onclick = () =>
+      toast('原型演示：由 Electron shell.openPath 实现');
+  }
+
+  // 配置文件编辑器（settings.json）
+  if (setCat === 'json' && !kw) {
+    const block = document.createElement('div');
+    block.className = 'set-row';
+    block.style.display = 'block';
+    block.innerHTML = `
+      <div class="set-title">编辑 settings.json</div>
+      <div class="set-desc">直接修改应用配置文件（与 VSCode 的 settings.json 同样的思路）。配置键按"分类.名称"点分命名（如 appearance.theme），保持扁平结构。点击"保存修改"后生效，仅识别合法的配置键，未知键将被忽略。任务数据存放在 tasks.json 中，两者互不影响。</div>
+      <textarea id="jsonEditor" class="json-editor" spellcheck="false"></textarea>
+      <div class="set-ctrl" style="margin-top:10px;flex-wrap:wrap">
+        <button class="mini-btn" id="jsonApply" title="校验并应用编辑内容，写入 settings.json">保存修改</button>
+        <button class="mini-btn" id="jsonReload" title="丢弃编辑，还原为当前生效的配置">放弃修改</button>
+        <button class="mini-btn" id="jsonExport" title="将当前配置导出为 settings.json 文件">导出配置</button>
+        <button class="mini-btn" id="jsonImport" title="从 settings.json 文件导入配置">导入配置</button>
+        <button class="mini-btn" id="jsonReset" title="重置为默认配置（不影响任务数据）">恢复默认</button>
+      </div>`;
+    content.appendChild(block);
+    const ta = block.querySelector('#jsonEditor');
+    ta.value = JSON.stringify(settings, null, 2);
+    block.querySelector('#jsonApply').onclick = () => {
+      try {
+        const obj = JSON.parse(ta.value);
+        if (typeof obj !== 'object' || Array.isArray(obj) || obj === null) throw new Error('根节点必须是对象');
+        settings = mergeSettings(obj);
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        applySettings(); render(); renderSettings();
+        toast('settings.json 已应用');
+      } catch (err) {
+        toast('JSON 格式错误，未应用：' + err.message);
+      }
+    };
+    block.querySelector('#jsonReload').onclick = () => { ta.value = JSON.stringify(settings, null, 2); toast('已还原为当前生效配置'); };
+    block.querySelector('#jsonExport').onclick = () => downloadJson('settings.json', settings);
+    block.querySelector('#jsonImport').onclick = () => $('#settingsFileInput').click();
+    block.querySelector('#jsonReset').onclick = resetSettings;
+  }
+  if (!content.children.length) {
+    content.innerHTML = '<div style="color:var(--text-sub);padding:40px 0;text-align:center">没有匹配的设置项</div>';
+  }
+}
+
+function matchItem(item, kw) {
+  return item.title.toLowerCase().includes(kw) || item.desc.toLowerCase().includes(kw);
+}
+$('#setSearch').oninput = (e) => { setSearchKw = e.target.value.trim(); renderSettings(); };
+$('#setSearch').onkeydown = (e) => { if (e.key === 'Enter') e.preventDefault(); };
+function closeSettings() { $('#settingsMask').classList.remove('show'); }
+$('#settingsMask').addEventListener('mousedown', (e) => { if (e.target === $('#settingsMask')) closeSettings(); });
+
+applySettings();
+
+// ---- 设置辅助：合并 / 恢复默认 / 下载 ----
+// 旧版扁平键名 → 新版命名空间键名（平滑迁移，不丢配置）
+const LEGACY_KEY_MAP = {
+  theme: 'appearance.theme',
+  fontSize: 'appearance.fontSize',
+  closeAction: 'window.closeAction',
+  defaultGroup: 'task.defaultGroup',
+  defaultPriority: 'task.defaultPriority',
+  overdueHighlight: 'task.overdueHighlight',
+};
+function mergeSettings(obj) {
+  const merged = { ...DEFAULT_SETTINGS };
+  for (const [k, v] of Object.entries(obj)) {
+    const key = LEGACY_KEY_MAP[k] || k;
+    // 仅覆盖合法配置键，未知键忽略（等价于 VSCode 容忍未知配置的行为）
+    if (key in DEFAULT_SETTINGS) merged[key] = v;
+  }
+  return merged;
+}
+function resetSettings() {
+  askConfirm('恢复默认设置', '将所有设置项恢复为默认值（重写 settings.json），任务数据 tasks.json 不受影响。', () => {
+    settings = { ...DEFAULT_SETTINGS };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    applySettings(); render(); renderSettings();
+    toast('已恢复默认设置');
+  });
+}
+function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---------- 导入导出 ----------
+function exportData() {
+  downloadJson('tasks.json', state);
+  toast('已导出任务备份 tasks.json');
+}
+$('#fileInput').onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.tasks) || !Array.isArray(data.groups)) throw 0;
+      state = data;
+      save(); render();
+      toast('导入成功');
+    } catch (err) { toast('文件格式不正确，导入失败'); }
+  };
+  reader.readAsText(f);
+  e.target.value = '';
+};
+$('#settingsFileInput').onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      if (typeof obj !== 'object' || Array.isArray(obj) || obj === null) throw new Error('根节点必须是对象');
+      settings = mergeSettings(obj);
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      applySettings(); render(); renderSettings();
+      toast('settings.json 已导入');
+    } catch (err) {
+      toast('设置文件格式错误，导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(f);
+  e.target.value = '';
+};
+
+// ---------- 快捷键 ----------
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeMenus();
+    $('#taskMask').classList.remove('show');
+    $('#confirmMask').classList.remove('show');
+    $('#inputMask').classList.remove('show');
+    $('#settingsMask').classList.remove('show');
+    return;
+  }
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'n') { e.preventDefault(); openTaskDialog(null); }
+  if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); }
+  if (mod && e.key === ',') { e.preventDefault(); openSettings(); }
+});
+
+// ---------- 初始化 ----------
+load();
+if (!localStorage.getItem(STORE_KEY)) {
+  const today = new Date();
+  const d = (n) => { const t = new Date(today); t.setDate(t.getDate()+n); return t.toISOString().slice(0,10); };
+  state.tasks = [
+    { id: 1, createdAt: Date.now()-3000, done: false, title: '完成 v1 原型评审', note: '对照功能清单逐项确认', group: '工作', priority: 'high', dueAt: d(1) + 'T18:00' },
+    { id: 2, createdAt: Date.now()-2000, done: false, title: '搭建 Electron Forge 项目骨架', note: '', group: '工作', priority: 'mid', dueAt: d(3) + 'T12:00' },
+    { id: 3, createdAt: Date.now()-1000, done: false, title: '每周采购', note: '清单在冰箱上', group: '生活', priority: 'low', dueAt: d(5) + 'T09:00' },
+    { id: 4, createdAt: Date.now()-500, done: true, completedAt: Date.now()-200, title: '确定技术栈：React + Electron Forge + Vite', note: '', group: '工作', priority: 'mid', dueAt: '' },
+  ];
+  state.groupColors = { '工作': '#2563eb', '生活': '#16a34a', '学习': '#7c3aed' };
+  state.seq = 5;
+  save();
+}
+render();
+</script>
+</body>
+</html>
