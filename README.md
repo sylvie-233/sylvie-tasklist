@@ -3,7 +3,7 @@
 > 本地任务清单桌面应用（仅 Windows）。分组、优先级、截止时间与拖拽排序，数据全部保存在本机，无网络依赖；
 > 内置 MCP Server，可让 AI 助手直接读写任务。
 
-![主界面](docs/screenshots/main.png)
+![主界面](tasklist-monorepo/docs/screenshots/main.png)
 
 ## 功能特性
 
@@ -17,13 +17,13 @@
 
 ## 界面预览
 
-| 设置 · 配置文件                        | 任务详情                                      |
-| -------------------------------------- | --------------------------------------------- |
-| ![设置](docs/screenshots/settings.png) | ![任务详情](docs/screenshots/task-detail.png) |
+| 设置 · 配置文件                                          | 任务详情                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------- |
+| ![设置](tasklist-monorepo/docs/screenshots/settings.png) | ![任务详情](tasklist-monorepo/docs/screenshots/task-detail.png) |
 
 暗色主题：
 
-![暗色主题](docs/screenshots/dark.png)
+![暗色主题](tasklist-monorepo/docs/screenshots/dark.png)
 
 ## 技术栈
 
@@ -36,6 +36,8 @@
 - **工程**：pnpm workspace + Turborepo + ESLint 9 + Prettier
 
 ## 快速开始
+
+pnpm workspace 位于 `tasklist-monorepo/`，以下命令需在该目录执行：
 
 ```bash
 pnpm install
@@ -137,10 +139,10 @@ tasklist-monorepo/
 
 ## 文档
 
-- [功能规划](../docs/任务清单v1功能规划.md)：功能范围、交互规则与数据模型
-- [交互原型](../docs/任务清单-v1原型.html)：单文件 HTML 原型
-- [MCP 服务设计与实现](../docs/MCP服务设计与实现.md)：架构分层、工具语义、生命周期与扩展方式
-- [桌面端模块说明](apps/electron/README.md)：主进程模块、IPC 契约与打包流程
+- [功能规划](docs/任务清单v1功能规划.md)：功能范围、交互规则与数据模型
+- [交互原型](docs/任务清单-v1原型.html)：单文件 HTML 原型
+- [MCP 服务设计与实现](docs/MCP服务设计与实现.md)：架构分层、工具语义、生命周期与扩展方式
+- [桌面端模块说明](tasklist-monorepo/apps/electron/README.md)：主进程模块、IPC 契约与打包流程
 
 ## 已知限制
 
@@ -154,7 +156,7 @@ tasklist-monorepo/
 
 <p align="center">
   <a href="https://ifdian.net/a/sylvie233">
-    <img src="../docs/afdian-Sylvie.jpg" alt="爱发电赞助二维码（支付宝 / 微信扫码）" width="240">
+    <img src="docs/afdian-Sylvie.jpg" alt="爱发电赞助二维码（支付宝 / 微信扫码）" width="240">
   </a>
 </p>
 

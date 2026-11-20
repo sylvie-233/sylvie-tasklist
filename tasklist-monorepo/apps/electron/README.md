@@ -1,7 +1,7 @@
 # @sylvie/electron · 桌面端
 
 Sylvie TaskList 的 Electron 应用：主进程负责窗口、托盘、文件与 MCP 服务，渲染进程是 React 19 界面，
-两者通过 preload 暴露的 `window.desktop` 通信。产品与使用说明见[根 README](../../README.md)。
+两者通过 preload 暴露的 `window.desktop` 通信。产品与使用说明见[根 README](../../../README.md)。
 
 ## 技术栈
 
