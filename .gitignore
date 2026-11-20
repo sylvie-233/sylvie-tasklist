@@ -1,2 +1,5 @@
 .workbuddy/
 .claude/
+artifacts/
+backups/
+logs/
