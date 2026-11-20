@@ -1,3 +1,4 @@
+import { registerClipboardIpc } from './clipboard';
 import { registerFileIpc } from './files';
 import { registerMcpIpc } from './mcp';
 import { registerStorageIpc } from './storage';
@@ -9,4 +10,5 @@ export function registerIpcHandlers(): void {
   registerFileIpc();
   registerWindowIpc();
   registerMcpIpc();
+  registerClipboardIpc();
 }

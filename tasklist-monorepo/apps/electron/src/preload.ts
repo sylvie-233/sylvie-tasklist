@@ -31,6 +31,7 @@ const api: DesktopApi = {
   importSettings: (): Promise<FileOpResult<AppSettings>> => ipcRenderer.invoke('settings:import'),
   getInfo: (): Promise<AppInfo> => ipcRenderer.invoke('app:info'),
   openDataFolder: (): Promise<void> => ipcRenderer.invoke('shell:open-data-folder'),
+  copyText: (text: string): Promise<boolean> => ipcRenderer.invoke('clipboard:write-text', text),
   minimize: (): void => {
     ipcRenderer.send('window:minimize');
   },

@@ -43,6 +43,8 @@ export interface DesktopApi {
   importSettings(): Promise<FileOpResult<AppSettings>>;
   getInfo(): Promise<AppInfo>;
   openDataFolder(): Promise<void>;
+  /** 写入系统剪贴板，返回是否成功。 */
+  copyText(text: string): Promise<boolean>;
   minimize(): void;
   toggleMaximize(): void;
   close(): void;

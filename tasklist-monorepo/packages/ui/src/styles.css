@@ -556,6 +556,22 @@ button {
   margin-top: 8px;
 }
 
+/* MCP 客户端配置片段（可选中等宽文本） */
+.mcp-config {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11.5px;
+  line-height: 1.65;
+  white-space: pre;
+  overflow-x: auto;
+  user-select: text;
+}
+
 .hotkey-row {
   display: flex;
   justify-content: space-between;

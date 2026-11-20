@@ -178,6 +178,37 @@ export function SettingsPanel({
     }
   };
 
+  /** 可直接粘贴到 MCP 客户端的配置，端口跟随实际监听端口。 */
+  const mcpConfig = useMemo(() => {
+    if (!mcp.running || !mcp.port) {
+      return '';
+    }
+    return JSON.stringify(
+      {
+        mcpServers: {
+          'sylvie-tasklist': {
+            type: 'http',
+            url: `http://127.0.0.1:${mcp.port}/mcp`,
+          },
+        },
+      },
+      null,
+      2,
+    );
+  }, [mcp.running, mcp.port]);
+
+  const copyMcpConfig = async (): Promise<void> => {
+    try {
+      if (await window.desktop.copyText(mcpConfig)) {
+        toast.success('MCP 配置已复制');
+      } else {
+        toast.error('复制失败，请手动选择文本复制');
+      }
+    } catch {
+      toast.error('复制失败，请手动选择文本复制');
+    }
+  };
+
   const renderControl = (item: SettingItem): JSX.Element => {
     if (item.type === 'select') {
       const options = resolveSettingOptions(item, data.groups);
@@ -377,6 +408,27 @@ export function SettingsPanel({
                   : '未运行'
             }
           />
+        )}
+        {category === 'mcp' && mcpConfig && (
+          <>
+            <h4>客户端配置</h4>
+            <SettingRow
+              title="MCP 客户端配置"
+              description="复制下方 JSON 粘贴到客户端的 mcpServers（VS Code 使用 servers 根键）。服务仅监听本机回环地址，无需鉴权。"
+              block
+            >
+              <pre className="mcp-config">{mcpConfig}</pre>
+              <div className="set-ctrl" style={{ marginTop: 8 }}>
+                <Button
+                  size="sm"
+                  title="复制配置 JSON 到剪贴板"
+                  onClick={() => void copyMcpConfig()}
+                >
+                  复制配置
+                </Button>
+              </div>
+            </SettingRow>
+          </>
         )}
       </>
     );
