@@ -18,7 +18,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "desktop:dev": "pnpm --filter @sylvie/electron start",
     "desktop:package": "pnpm --filter @sylvie/electron package",
-    "desktop:make": "pnpm --filter @sylvie/electron make"
+    "desktop:make": "pnpm --filter @sylvie/electron make",
+    "lint:fix": "turbo run lint -- --fix"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

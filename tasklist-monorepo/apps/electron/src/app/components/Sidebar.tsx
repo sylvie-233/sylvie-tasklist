@@ -105,7 +105,10 @@ function GroupRow({
   );
 }
 
-interface SortableGroupProps extends Omit<GroupRowProps, 'setNodeRef' | 'style' | 'dragProps' | 'isDragging' | 'isOver'> {}
+type SortableGroupProps = Omit<
+  GroupRowProps,
+  'setNodeRef' | 'style' | 'dragProps' | 'isDragging' | 'isOver'
+>;
 
 /** 可拖拽排序的自定义分组（同时作为任务的放置目标）。 */
 function SortableGroup(props: SortableGroupProps): JSX.Element {
