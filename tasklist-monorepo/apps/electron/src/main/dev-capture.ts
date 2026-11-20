@@ -11,6 +11,8 @@ import { app, type BrowserWindow } from 'electron';
  * TASKLIST_CAPTURE=out.png TASKLIST_CAPTURE_VIEW=settings \
  *   TASKLIST_CAPTURE_CATEGORY=配置文件 pnpm desktop:dev                     # 指定设置分类
  * TASKLIST_CAPTURE=out.png TASKLIST_CAPTURE_VIEW=task pnpm desktop:dev      # 任务详情
+ * TASKLIST_CAPTURE=out.png TASKLIST_CAPTURE_CLICK='.mcp-config + .set-ctrl button' \
+ *   TASKLIST_CAPTURE_VIEW=settings TASKLIST_CAPTURE_CATEGORY='MCP 服务' pnpm desktop:dev
  * ```
  *
  * 渲染完成后截图并退出，便于在没有 UI 自动化时检查界面回归。
@@ -49,6 +51,16 @@ export function attachDevCapture(window: BrowserWindow): void {
           );
           await new Promise((resolve) => setTimeout(resolve, 700));
         }
+
+        // 可选：截图前点击指定元素（如触发复制按钮做端到端验证）
+        const click = process.env.TASKLIST_CAPTURE_CLICK;
+        if (click) {
+          await window.webContents.executeJavaScript(
+            `document.querySelector(${JSON.stringify(click)})?.click()`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
+
         const image = await window.webContents.capturePage();
         await writeFile(target, image.toPNG());
         app.quit();
