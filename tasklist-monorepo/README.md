@@ -15,7 +15,7 @@
 | 设计系统 | `packages/ui`：Radix UI（Dialog / Switch）+ 自有设计令牌 |
 | 交互 | **@dnd-kit**（任务与分组拖拽）、**motion**（列表布局动画）、**sonner**（Toast） |
 | 日期 | date-fns |
-| 服务端 | **Hono** + **@modelcontextprotocol/sdk**（MCP，官方 SDK 的 Streamable HTTP） |
+| 服务端 | **Hono** + **@modelcontextprotocol/sdk**（MCP，官方 SDK 的 Streamable HTTP，独立在 `packages/mcp`） |
 
 原则：协议、弹窗、拖拽、动画、Toast 一律用成熟库，业务侧只写领域逻辑与视图组装。
 
@@ -29,7 +29,7 @@ tasklist-monorepo/
 │       ├── assets/                # 图标（scripts/generate-icon.mjs 生成，零依赖）
 │       └── src/
 │           ├── main.ts            # 主进程：无边框窗口、托盘、IPC、文件读写
-│           ├── mcp-server.ts      # MCP Server（Hono + 官方 SDK）
+│           ├── task-repository.ts # 把主进程缓存适配成 MCP 的 TaskListRepository
 │           ├── dev-capture.ts     # 开发用截图钩子（GUI 回归）
 │           ├── preload.ts         # contextBridge 暴露 window.desktop
 │           ├── renderer.tsx       # 渲染进程入口
@@ -44,9 +44,13 @@ tasklist-monorepo/
 │               └── components/        # TitleBar / MenuBar / Sidebar / Toolbar / TaskList / TaskDialog / SettingsPanel / StatusBar
 └── packages/
     ├── core/                      # 领域模型：类型 / 默认值 / 排序 / 迁移 / 设置 schema / 格式化
+    ├── mcp/                       # MCP 服务：工具定义 + Hono HTTP 传输 + TaskListRepository 端口
     ├── ui/                        # 设计系统：令牌、Button/Chip/Field/Modal/Switch/Toaster 等
     └── tsconfig/                  # 共享 TypeScript 配置
 ```
+
+- `packages/mcp` 不依赖 Electron：只声明 `TaskListRepository` 端口（读数据 / 建任务 / 改分组…），
+  由宿主（主进程）实现并通过 `startMcpHttpServer({ repo, version, port })` 注入，便于以后在其他运行时复用。
 
 - `packages/core` 与 `packages/ui` 以 **TS 源码**形式被应用消费（`exports` 指向 `src/index.ts`），
   由 Vite alias 直接参与打包，省掉构建产物与 watch 流程；因此不适合直接发布 npm。
@@ -142,9 +146,26 @@ TASKLIST_CAPTURE=shot.png TASKLIST_CAPTURE_SETTINGS=1 pnpm desktop:dev  # 打开
 - 端点：`POST http://127.0.0.1:37821/mcp`（Streamable HTTP，JSON 响应），`GET /health` 探活
 - 会话：按 `mcp-session-id` 头维护（SDK 规范要求，首次 `initialize` 的响应头返回该 id）
 - 只监听回环地址；端口被占用时自动向后寻找（37821 起，最多 10 个）
-- 工具：
-  - `list_tasks` — 按分组 / 状态 / 关键词查询
-  - `create_task` — 创建任务（标题必填，可指定分组、优先级、截止时间）
+- 工具（共 13 个，定义在 `packages/mcp/src/tools`）：
+
+  | 分类 | 工具 | 说明 |
+  | --- | --- | --- |
+  | 查询 | `list_tasks` | 分组 / 状态 / 优先级 / 关键词 / 逾期 / 截止区间过滤，可指定排序与条数 |
+  | 查询 | `get_task` | 按 id 取单个任务 |
+  | 查询 | `get_overview` | 总数 / 进行中 / 已完成 / 逾期、按分组分布、最近到期任务 |
+  | 查询 | `list_groups` | 分组列表（颜色 + 计数，含「未分组」） |
+  | 查询 | `get_settings` | 读取当前应用配置 |
+  | 任务 | `create_task` | 创建任务（分组省略时用默认分组） |
+  | 任务 | `update_task` | 改标题 / 备注 / 分组 / 优先级 / 截止时间（`dueAt: ""` 清空） |
+  | 任务 | `set_task_done` | 标记完成 / 恢复进行中（自动维护完成时间） |
+  | 任务 | `delete_task` | 删除任务 |
+  | 任务 | `move_task` | 改分组，或按 `beforeId` / `afterId` 调整自定义顺序 |
+  | 分组 | `create_group` | 新建分组（可带 `#RRGGBB` 颜色） |
+  | 分组 | `update_group` | 重命名（联动任务）/ 改色（空串清除） |
+  | 分组 | `delete_group` | 删除分组（任务归入「未分组」，返回迁移条数） |
+
+- 入参校验由 zod 完成；业务错误（任务不存在、分组重名、颜色非法等）以 `isError: true` 的工具结果返回；
+- 所有写操作经仓库端口回到主进程：更新缓存 → 原子落盘 → 广播给渲染进程，界面实时同步
 
 手动联调：
 
