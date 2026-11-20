@@ -143,3 +143,15 @@ tasklist-monorepo/
 - 安装包未签名，Squirrel 安装会触发 SmartScreen 提示
 - 未接入单元测试（typecheck + ESLint + 打包 + 截图回归为当前验证手段）
 - 渲染产物约 530 KB（dnd-kit + Radix + motion），桌面场景未做代码分割
+
+## 赞助支持
+
+如果这个项目对你有帮助，欢迎通过爱发电支持作者。可使用支付宝或微信扫码赞助：
+
+<p align="center">
+  <a href="https://ifdian.net/a/sylvie233">
+    <img src="../docs/afdian-Sylvie.jpg" alt="爱发电赞助二维码（支付宝 / 微信扫码）" width="240">
+  </a>
+</p>
+
+爱发电主页：<https://ifdian.net/a/sylvie233>
