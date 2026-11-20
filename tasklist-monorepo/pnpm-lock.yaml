@@ -41,15 +41,12 @@ importers:
       '@electron-forge/shared-types':
         specifier: ^8.0.1
         version: 8.0.1
-      '@hono/node-server':
-        specifier: ^1.13.7
-        version: 1.19.19(hono@4.13.19)
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.20.1
-        version: 1.32.2(zod@3.25.76)
       '@sylvie/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@sylvie/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@sylvie/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
@@ -80,9 +77,6 @@ importers:
       electron-squirrel-startup:
         specifier: ^1.0.1
         version: 1.0.1
-      hono:
-        specifier: ^4.6.14
-        version: 4.13.19
       lucide-react:
         specifier: ^0.469.0
         version: 0.469.0(react@19.3.1)
@@ -113,9 +107,6 @@ importers:
       vite:
         specifier: ^8.3.8
         version: 8.3.8(@types/node@22.20.5)(jiti@2.7.0)
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
       zustand:
         specifier: ^5.0.2
         version: 5.1.0(@types/react@19.3.0)(react@19.3.1)
@@ -129,6 +120,37 @@ importers:
       '@sylvie/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.4
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/mcp:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.7
+        version: 1.19.19(hono@4.13.19)
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.32.2
+        version: 1.32.2(zod@3.25.76)
+      '@sylvie/core':
+        specifier: workspace:*
+        version: link:../core
+      hono:
+        specifier: ^4.6.14
+        version: 4.13.19
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@sylvie/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.5
       rimraf:
         specifier: ^6.0.1
         version: 6.1.4
